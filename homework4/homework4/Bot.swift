@@ -27,6 +27,7 @@ struct RequestForMarket {
 
 protocol BotProtocol {
     var balance: Double { get }
+    var decisionsMade: Int { get }
     var currenciesOnHand: [Currency] { get }
     func decideOnAction(for currency: Currency) -> Action
     func formARequestForMarket(toMake action: Action, for currency: Currency) -> RequestForMarket
@@ -34,11 +35,13 @@ protocol BotProtocol {
 }
 
 final class Bot: BotProtocol {
-    private var dealHistory: [Deal] = []
-    private(set) var balance: Double
-    private(set) var currenciesOnHand: [Currency] = []
     private let maxValueToPurchase: Double = 65
     private let logger: LoggerProtocol
+    private var dealHistory: [Deal] = []
+    
+    private(set) var balance: Double
+    private(set) var currenciesOnHand: [Currency] = []
+    private(set) var decisionsMade: Int = 0
     
     init (logger: LoggerProtocol) {
         balance = 1000
@@ -58,6 +61,7 @@ final class Bot: BotProtocol {
             }
         }
         logger.logAction(decidedAction, for: currency)
+        decisionsMade += 1
         return decidedAction
     }
     
@@ -106,9 +110,12 @@ final class Bot: BotProtocol {
         dealHistory.append(Deal(action: action, currency: currency, timestamp: Date()))
     }
     
+}
+
+// MARK: - Private Methods
+private extension Bot {
     private static func quantityToBuy(for currency: Currency, _ balance: Double) -> Double {
         let maximumQuantity = balance/currency.value
         return Double.random(in: 1...maximumQuantity)
     }
 }
-
