@@ -13,9 +13,11 @@ enum Action {
     case sell
 }
 
-struct Deal {
+struct Deal: Equatable {
+    let id: UUID
     let action: Action
     let currency: Currency
+    let result: String?
     let timestamp: Date
 }
 
@@ -32,6 +34,8 @@ protocol BotProtocol {
     func decideOnAction(for currency: Currency) -> Action
     func formARequestForMarket(toMake action: Action, for currency: Currency) -> RequestForMarket
     func processMarketResponse(_ response: MarketResponse)
+    func getLastDealForCurrency(withName currencyName: Currency.CurrencyName) -> Deal?
+    func getDealHistory() -> [Deal]
 }
 
 final class Bot: BotProtocol {
@@ -43,11 +47,14 @@ final class Bot: BotProtocol {
     private(set) var currenciesOnHand: [Currency] = []
     private(set) var decisionsMade: Int = 0
     
-    init (logger: LoggerProtocol) {
+    let historyHandler: DealHistoryHandlerProtocol
+    
+    init (logger: LoggerProtocol, historyhandler: DealHistoryHandlerProtocol) {
         balance = 1000
         for currency in Currency.CurrencyName.allCases {
             currenciesOnHand.append(Currency(name: currency, quantity: 0, value: 0))
         }
+        self.historyHandler = historyhandler
         self.logger = logger
     }
     
@@ -98,7 +105,7 @@ final class Bot: BotProtocol {
                 newQuantity = currenciesOnHand[index].quantity - response.request.quantity
                 balance += response.request.quantity * response.request.currency.value
             default:
-                return
+                break
             }
             currenciesOnHand[index] = Currency(name: response.request.currency.name, quantity: newQuantity, value: newValue)
             registerDeal(for: response.request.currency, action: response.request.action)
@@ -107,12 +114,26 @@ final class Bot: BotProtocol {
     }
     
     func registerDeal(for currency: Currency, action: Action) {
-        dealHistory.append(Deal(action: action, currency: currency, timestamp: Date()))
+        let newDeal = Deal(
+            id: UUID(),
+            action: action,
+            currency: currency,
+            result: historyHandler.getDealResult(for: currency, with: action, using: dealHistory),
+            timestamp: Date()
+        )
+        dealHistory.append(newDeal)
     }
     
+    func getLastDealForCurrency(withName currencyName: Currency.CurrencyName) -> Deal? {
+        return historyHandler.getLastDealForCurrency(withName: currencyName, in: dealHistory)
+    }
+    
+    func getDealHistory() -> [Deal] {
+        return dealHistory
+    }
 }
 
-// MARK: - Private Methods
+// MARK: - Private methods
 private extension Bot {
     private static func quantityToBuy(for currency: Currency, _ balance: Double) -> Double {
         let maximumQuantity = balance/currency.value
