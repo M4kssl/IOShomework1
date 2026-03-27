@@ -8,7 +8,8 @@
 import UIKit
 
 final class ViewController: UIViewController {
-    private lazy var traderBot = Bot(logger: viewLogger)
+    private lazy var traderBot = Bot(logger: viewLogger, historyhandler: botHistoryHandler)
+    private lazy var botHistoryHandler = BotHistoryHandler()
     private lazy var viewLogger = TextViewLogger(textView: botOutput)
     private var market = Market()
     private let runButton = UIButton()
@@ -20,6 +21,7 @@ final class ViewController: UIViewController {
     private let labelForSuperview = UILabel()
     private let customerSupportView = SupportInformationView()
     private let initialInfoLabel = UILabel()
+    private let dealHistoryTableView = UITableView()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -34,6 +36,7 @@ private extension ViewController {
         addInitialLabel()
         addRunButton()
         addTextView()
+        addDealHistoryTableView()
         addCurrencyInfoViews()
         addViewWithSubview()
         addCustomerSupportView()
@@ -82,7 +85,7 @@ private extension ViewController {
         botOutput.layer.borderColor = UIColor.systemGray.cgColor
         botOutput.layer.borderWidth = 0.5
         botOutput.isEditable = false
-        botOutput.alpha = 0
+        botOutput.isHidden = true
         view.addSubview(botOutput)
         botOutput.translatesAutoresizingMaskIntoConstraints = false
     }
@@ -97,7 +100,16 @@ private extension ViewController {
         runButton.translatesAutoresizingMaskIntoConstraints = false
     }
     
-    // MARK: - Constraints
+    func addDealHistoryTableView() {
+        view.addSubview(dealHistoryTableView)
+        dealHistoryTableView.translatesAutoresizingMaskIntoConstraints = false
+        dealHistoryTableView.register(DealCell.self, forCellReuseIdentifier: DealCell.identifier)
+        dealHistoryTableView.dataSource = self
+        dealHistoryTableView.alpha = 0
+        dealHistoryTableView.layer.borderWidth = 1
+    }
+    
+    // MARK: - constraints
     func setConstraints() {
         setRunButtonConstraints()
         setTextViewConstraints()
@@ -106,6 +118,7 @@ private extension ViewController {
         setViewForLabelConstraints()
         setInitialLabelConstraints()
         setCustomerSupportViewConstraints()
+        setDealHistoryTableViewConstraints()
     }
     
     func setInitialLabelConstraints() {
@@ -168,6 +181,16 @@ private extension ViewController {
         ])
     }
     
+    func setDealHistoryTableViewConstraints() {
+        NSLayoutConstraint.activate([
+            dealHistoryTableView.heightAnchor.constraint(greaterThanOrEqualToConstant: 200),
+            dealHistoryTableView.bottomAnchor.constraint(equalTo: runButton.topAnchor, constant: -16),
+            dealHistoryTableView.topAnchor.constraint(lessThanOrEqualTo: customerSupportView.bottomAnchor, constant: 64),
+            dealHistoryTableView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
+            dealHistoryTableView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16)
+        ])
+    }
+    
     func textForCurrencylabel(currency: Currency) -> String {
         return "\(currency.name.rawValue.uppercased()) - \(String(format: "%.2f", currency.value))"
     }
@@ -177,8 +200,10 @@ private extension ViewController {
             let currency = market.currencies[index]
             currencyLabels[index].text = textForCurrencylabel(currency: currency)
         }
-        if traderBot.decisionsMade > 0, botOutput.alpha == 0 {
-            crossDissolveViews(form: initialInfoLabel, to: botOutput)
+        dealHistoryTableView.reloadData()
+        
+        if traderBot.decisionsMade > 0, dealHistoryTableView.alpha == 0 {
+            crossDissolveViews(form: initialInfoLabel, to: dealHistoryTableView)
         }
     }
     
@@ -212,6 +237,18 @@ private extension ViewController {
             },
             completion: nil
         )
+    }
+}
+
+extension ViewController: UITableViewDataSource {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return traderBot.getDealHistory().count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: DealCell.identifier) as? DealCell
+        cell?.displayedDeal = traderBot.getDealHistory()[indexPath.row]
+        return cell ?? UITableViewCell()
     }
 }
 

@@ -7,17 +7,10 @@
 
 import Foundation
 
-struct Currency {
+struct Currency: Equatable {
     let name: CurrencyName
     let quantity: Double
     let value: Double
-    
-    enum CurrencyName: String, CaseIterable {
-        case usd
-        case eur
-        case gbp
-        case jpy
-    }
 }
 
 protocol MarketProtocol {
@@ -30,11 +23,6 @@ struct MarketResponse {
     let request: RequestForMarket
     let status: MarketResponseStatus
     let messege: String?
-    
-    enum MarketResponseStatus: String {
-        case success
-        case failure
-    }
 }
 
 final class Market: MarketProtocol {
@@ -74,5 +62,23 @@ final class Market: MarketProtocol {
             }
         }
         return MarketResponse(request: request, status: .failure, messege: "Something went wrong")
+    }
+}
+
+// MARK: - Currency's nested types
+extension Currency {
+    enum CurrencyName: String, CaseIterable {
+        case usd
+        case eur
+        case gbp
+        case jpy
+    }
+}
+
+// MARK: - MarketResponse's nested types
+extension MarketResponse {
+    enum MarketResponseStatus: String {
+        case success
+        case failure
     }
 }
