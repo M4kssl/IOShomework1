@@ -18,8 +18,8 @@ final class ViewController: UIViewController {
     private let phoneImage = UIImage()
     private let superviewForLabel = UIView()
     private let labelForSuperview = UILabel()
-    private let customerSupportLabel = UILabel()
-    private let customerSupportPicure = UIImageView()
+    private let customerSupportView = SupportInformationView()
+    private let initialInfoLabel = UILabel()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -27,41 +27,45 @@ final class ViewController: UIViewController {
     }
 }
 
-extension ViewController {
+// MARK: - Private Methods
+private extension ViewController {
     func initViews() {
         view.backgroundColor = .systemYellow
+        addInitialLabel()
         addRunButton()
         addTextView()
         addCurrencyInfoViews()
         addViewWithSubview()
-        addCustomerSupportInfo()
+        addCustomerSupportView()
         setConstraints()
     }
     
-    private func addViewWithSubview() {
-        let viewWidth = view.frame.width / 2 + 40
-        let viewHeight = CGFloat(40)
-        let xPoint = view.safeAreaLayoutGuide.layoutFrame.midX - viewWidth / 2
-        let yPoint = CGFloat(20)
-        superviewForLabel.frame = CGRect(x: xPoint, y: yPoint, width: viewWidth, height: viewHeight)
+    func addInitialLabel() {
+        initialInfoLabel.attributedText = centeredAttributedString(defaultTexts.initialInfoLabel, fontSize: 50)
+        initialInfoLabel.sizeToFit()
+        initialInfoLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(initialInfoLabel)
+    }
+    
+    func addViewWithSubview() {
         superviewForLabel.translatesAutoresizingMaskIntoConstraints = false
         superviewForLabel.backgroundColor = .systemRed
         superviewForLabel.alpha = 0.8
-        labelForSuperview.attributedText = centeredAttributedString("Currencies", fontSize: 25)
+        labelForSuperview.attributedText = centeredAttributedString(defaultTexts.mainTitle, fontSize: 25)
         labelForSuperview.sizeToFit()
         labelForSuperview.textAlignment = .center
         superviewForLabel.addSubview(labelForSuperview)
         view.addSubview(superviewForLabel)
     }
     
-    private func addCurrencyInfoViews() {
+    func addCurrencyInfoViews() {
         currencyStackView.spacing = CGFloat(5)
         currencyStackView.axis = .vertical
         currencyStackView.translatesAutoresizingMaskIntoConstraints = false
         
         for currencyName in Currency.CurrencyName.allCases {
             let currencyLabel = UILabel()
-            currencyLabel.text = "\(currencyName.rawValue.uppercased()) - 0.00"
+            currencyLabel.text = "\(currencyName.rawValue.uppercased()) - \(defaultTexts.initialCurrencyValue)"
             currencyLabel.translatesAutoresizingMaskIntoConstraints = false
             currencyLabels.append(currencyLabel)
             currencyStackView.addArrangedSubview(currencyLabel)
@@ -69,37 +73,23 @@ extension ViewController {
         view.addSubview(currencyStackView)
     }
     
-    private func centeredAttributedString(_ string: String, fontSize: CGFloat) -> NSAttributedString {
-        var font = UIFont.preferredFont(forTextStyle: .headline).withSize(fontSize)
-        font = UIFontMetrics(forTextStyle: .headline).scaledFont(for: font)
-        let paragrapthStyle = NSMutableParagraphStyle()
-        paragrapthStyle.alignment = .center
-        let attributedString = NSAttributedString(string: string, attributes: [.paragraphStyle: paragrapthStyle, .font:font])
-        return attributedString
+    func addCustomerSupportView() {
+        customerSupportView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(customerSupportView)
     }
     
-    private func addCustomerSupportInfo() {
-        customerSupportLabel.text = "You can call oue customer support:\n +123456789"
-        customerSupportLabel.translatesAutoresizingMaskIntoConstraints = false
-        customerSupportLabel.numberOfLines = 0
-        view.addSubview(customerSupportLabel)
-        customerSupportPicure.image = UIImage(named: "phone")
-        customerSupportPicure.contentMode = .scaleAspectFit
-        customerSupportPicure.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(customerSupportPicure)
-    }
-    
-    private func addTextView() {
+    func addTextView() {
         botOutput.layer.borderColor = UIColor.systemGray.cgColor
         botOutput.layer.borderWidth = 0.5
         botOutput.isEditable = false
+        botOutput.alpha = 0
         view.addSubview(botOutput)
         botOutput.translatesAutoresizingMaskIntoConstraints = false
     }
     
-    private func addRunButton() {
+    func addRunButton() {
         view.addSubview(runButton)
-        runButton.setTitle("Run Bot", for: .normal)
+        runButton.setTitle(defaultTexts.runButtonText, for: .normal)
         runButton.backgroundColor = .systemBlue
         runButton.titleLabel?.textColor = .white
         runButton.layer.cornerRadius = CGFloat(10)
@@ -107,90 +97,93 @@ extension ViewController {
         runButton.translatesAutoresizingMaskIntoConstraints = false
     }
     
-    private func setConstraints() {
+    // MARK: - Constraints
+    func setConstraints() {
         setRunButtonConstraints()
         setTextViewConstraints()
         setCurrencyStackViewConstraints()
         setLabelForSuperviewConstraints()
         setViewForLabelConstraints()
-        setCustomerSupportImageConstraints()
-        setCustomerSupportLabelConstraints()
+        setInitialLabelConstraints()
+        setCustomerSupportViewConstraints()
     }
     
-    private func setRunButtonConstraints() {
+    func setInitialLabelConstraints() {
         NSLayoutConstraint.activate([
-            runButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-            runButton.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 120),
-            runButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -120)
+            initialInfoLabel.topAnchor.constraint(equalTo: botOutput.topAnchor),
+            initialInfoLabel.bottomAnchor.constraint(equalTo: botOutput.bottomAnchor),
+            initialInfoLabel.leadingAnchor.constraint(equalTo: botOutput.leadingAnchor),
+            initialInfoLabel.trailingAnchor.constraint(equalTo: botOutput.trailingAnchor),
         ])
     }
     
-    private func setTextViewConstraints() {
+    func setRunButtonConstraints() {
         NSLayoutConstraint.activate([
-            botOutput.heightAnchor.constraint(greaterThanOrEqualToConstant: 250),
-            botOutput.bottomAnchor.constraint(equalTo: runButton.topAnchor, constant: -20),
-            botOutput.topAnchor.constraint(equalTo: customerSupportPicure.bottomAnchor, constant: 20),
-            botOutput.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            botOutput.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20)
+            runButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            runButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
     }
     
-    private func setCurrencyStackViewConstraints() {
+    func setTextViewConstraints() {
         NSLayoutConstraint.activate([
-            currencyStackView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            currencyStackView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            currencyStackView.topAnchor.constraint(equalTo: superviewForLabel.bottomAnchor, constant: 20)
+            botOutput.heightAnchor.constraint(greaterThanOrEqualToConstant: 200),
+            botOutput.bottomAnchor.constraint(equalTo: runButton.topAnchor, constant: -16),
+            botOutput.topAnchor.constraint(lessThanOrEqualTo: customerSupportView.bottomAnchor, constant: 64),
+            botOutput.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
+            botOutput.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16)
         ])
     }
     
-    private func setLabelForSuperviewConstraints() {
+    func setCurrencyStackViewConstraints() {
         NSLayoutConstraint.activate([
-            labelForSuperview.topAnchor.constraint(equalTo: superviewForLabel.topAnchor, constant: 2),
-            labelForSuperview.bottomAnchor.constraint(equalTo: superviewForLabel.bottomAnchor, constant: 2),
+            currencyStackView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
+            currencyStackView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+            currencyStackView.topAnchor.constraint(equalTo: superviewForLabel.bottomAnchor, constant: 16)
+        ])
+    }
+    
+    func setLabelForSuperviewConstraints() {
+        NSLayoutConstraint.activate([
+            labelForSuperview.topAnchor.constraint(equalTo: superviewForLabel.topAnchor),
+            labelForSuperview.bottomAnchor.constraint(equalTo: superviewForLabel.bottomAnchor),
+            labelForSuperview.trailingAnchor.constraint(equalTo: superviewForLabel.trailingAnchor),
+            labelForSuperview.leadingAnchor.constraint(equalTo: superviewForLabel.leadingAnchor),
             labelForSuperview.centerXAnchor.constraint(equalTo: superviewForLabel.centerXAnchor)
         ])
     }
     
-    private func setViewForLabelConstraints() {
+    func setViewForLabelConstraints() {
         NSLayoutConstraint.activate([
-            superviewForLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            superviewForLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
             superviewForLabel.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor)
         ])
     }
     
-    private func setCustomerSupportImageConstraints() {
+    func setCustomerSupportViewConstraints() {
         NSLayoutConstraint.activate([
-            customerSupportPicure.widthAnchor.constraint(lessThanOrEqualToConstant: 150),
-            customerSupportPicure.heightAnchor.constraint(lessThanOrEqualToConstant: 150),
-            customerSupportPicure.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            customerSupportPicure.leadingAnchor.constraint(equalTo: customerSupportLabel.trailingAnchor, constant: 20),
-            customerSupportPicure.topAnchor.constraint(equalTo: currencyStackView.bottomAnchor, constant: 20),
-            customerSupportPicure.bottomAnchor.constraint(equalTo: botOutput.topAnchor, constant: -20)
+            customerSupportView.leadingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
+            customerSupportView.trailingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+            customerSupportView.topAnchor.constraint(equalTo: currencyStackView.bottomAnchor, constant: 16),
+            customerSupportView.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor)
         ])
     }
     
-    private func setCustomerSupportLabelConstraints() {
-        NSLayoutConstraint.activate([
-            customerSupportLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-            customerSupportLabel.trailingAnchor.constraint(equalTo: customerSupportLabel.leadingAnchor, constant: -20),
-            customerSupportLabel.topAnchor.constraint(equalTo: currencyStackView.bottomAnchor, constant: 20),
-            customerSupportLabel.bottomAnchor.constraint(equalTo: botOutput.topAnchor, constant: -20)
-        ])
-    }
-    
-    private func textForCurrencylabel(currency: Currency) -> String {
+    func textForCurrencylabel(currency: Currency) -> String {
         return "\(currency.name.rawValue.uppercased()) - \(String(format: "%.2f", currency.value))"
     }
     
-    private func updateViewFromModel() {
+    func updateViewFromModel() {
         for index in market.currencies.indices {
             let currency = market.currencies[index]
             currencyLabels[index].text = textForCurrencylabel(currency: currency)
         }
+        if traderBot.decisionsMade > 0, botOutput.alpha == 0 {
+            crossDissolveViews(form: initialInfoLabel, to: botOutput)
+        }
     }
     
     @objc
-    private func runButtonTapped() {
+    func runButtonTapped() {
         market.updateCurrenciesValues()
         for currency in market.currencies {
             let action = traderBot.decideOnAction(for: currency)
@@ -199,5 +192,35 @@ extension ViewController {
             traderBot.processMarketResponse(response)
         }
         updateViewFromModel()
+    }
+    
+    func centeredAttributedString(_ string: String, fontSize: CGFloat) -> NSAttributedString {
+        var font = UIFont.preferredFont(forTextStyle: .headline).withSize(fontSize)
+        font = UIFontMetrics(forTextStyle: .headline).scaledFont(for: font)
+        let paragrapthStyle = NSMutableParagraphStyle()
+        paragrapthStyle.alignment = .center
+        let attributedString = NSAttributedString(string: string, attributes: [.paragraphStyle: paragrapthStyle, .font:font])
+        return attributedString
+    }
+    
+    func crossDissolveViews(form oldView: UIView, to newView: UIView) {
+        UIView.animate(
+            withDuration: 0.6,
+            animations: {
+                oldView.alpha = 0
+                newView.alpha = 1
+            },
+            completion: nil
+        )
+    }
+}
+
+// MARK: - Constants
+private extension ViewController {
+    struct defaultTexts {
+        static let runButtonText = "Run Bot"
+        static let initialInfoLabel = "No data"
+        static let initialCurrencyValue = "0.00"
+        static let mainTitle = "Currencies"
     }
 }
