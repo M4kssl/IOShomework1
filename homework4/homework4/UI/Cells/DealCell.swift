@@ -15,7 +15,7 @@ final class DealCell: UITableViewCell {
     
     var displayedDeal: Deal? {
         didSet {
-            updateVeiwFromData()
+            update()
         }
     }
     
@@ -31,14 +31,9 @@ final class DealCell: UITableViewCell {
     }
 }
 
-// MARK: - Identifier
-extension DealCell {
-    static let identifier = "DealCell"
-}
-
-// MARK: - Private methods
+// MARK: - Private Methods
 private extension DealCell {
-    func updateVeiwFromData() {
+    func update() {
         guard let displayedDeal else { return }
         dealLabel.text = displayedDeal.currencyActionText
         dealLabel.sizeToFit()
@@ -58,9 +53,9 @@ private extension DealCell {
         contentView.backgroundColor = .white
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.axis = .vertical
-        stackView.spacing = 4
-        dealLabel.font = .preferredFont(forTextStyle: .headline)
-        resultLabel.font = .preferredFont(forTextStyle: .footnote)
+        stackView.spacing = stackViewSpacing.extraSmall
+        dealLabel.font = AppFonts.headline
+        resultLabel.font = AppFonts.footnote
         resultLabel.numberOfLines = .zero
     }
     
@@ -76,10 +71,10 @@ private extension DealCell {
     
     func setStackViewConstraints() {
         NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 2),
-            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -2),
-            stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 2),
-            stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -2)
+            stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: constraintSpacing.extraSmall),
+            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -constraintSpacing.extraSmall),
+            stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: constraintSpacing.extraSmall),
+            stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -constraintSpacing.extraSmall)
         ])
     }
 }
@@ -87,6 +82,11 @@ private extension DealCell {
 // MARK: - Deal extesion
 extension Deal {
     var currencyActionText: String {
-        return "\(self.currency.name) \(self.currency.value) - to \(self.action)\n"
+        return "\(self.currency.name) \(self.currency.value.stringWithTwoDecimalPlaces) - to \(self.action)\n"
     }
+}
+
+// MARK: - Identifier
+extension DealCell {
+    static let identifier = "DealCell"
 }

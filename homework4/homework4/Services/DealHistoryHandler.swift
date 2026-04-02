@@ -13,11 +13,9 @@ protocol DealHistoryHandlerProtocol {
 }
 
 final class BotHistoryHandler: DealHistoryHandlerProtocol {
-    
     func getDealResult(for currency: Currency, with action: Action, using history: [Deal]) -> String {
-        
         let toValue: Double = currency.quantity * currency.value
-        var fromValue: Double = 0
+        var fromValue: Double = .zero
         var actionToSearch: Action = .ignore
         var income: Double {
             return toValue - fromValue
@@ -35,7 +33,7 @@ final class BotHistoryHandler: DealHistoryHandlerProtocol {
         if let lastDeal = history.last(where: { $0.action == actionToSearch && $0.currency.name == currency.name }) {
             fromValue = currency.quantity * lastDeal.currency.value
         }
-        return "\(action) FROM = \(fromValue) -> TO = \(toValue), INCOME = \(income)\n"
+        return "\(action) FROM = \(fromValue.stringWithTwoDecimalPlaces) -> TO = \(toValue.stringWithTwoDecimalPlaces), INCOME = \(income.stringWithTwoDecimalPlaces)\n"
     }
     
     func getLastDealForCurrency(withName currencyName: Currency.CurrencyName, in history: [Deal]) -> Deal? {
