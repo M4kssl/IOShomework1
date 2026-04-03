@@ -19,10 +19,10 @@ final class CurrencyConversionViewController: UIViewController {
     private let filterButtonsStackView = UIStackView()
     private let currencyStackView = UIStackView()
     private let timerLabel = UILabel()
-    private let timerDuration: Double = 5
     private let amountToConvertTextField = UITextField()
     private let conversionResultLabel = UILabel()
     private let conversionStackView = UIStackView()
+    private let favoriteFilterSwitch = FavoriteFilterSwitch()
     
     private var timer: Timer?
     private var timerLabelText: String {
@@ -35,7 +35,7 @@ final class CurrencyConversionViewController: UIViewController {
     private var selectedCurrecnyToChooseIndex: Int? {
         return currenciesToChoose.firstIndex(where: { $0.isChosen })
     }
-    private var conversionResult: Double = 0 {
+    private var conversionResult: Double = .zero {
         didSet {
             updateConversionResultLabel()
         }
@@ -45,10 +45,10 @@ final class CurrencyConversionViewController: UIViewController {
         let layout = UICollectionViewFlowLayout()
         layout.itemSize = DefaultValues.layotItemSize
         layout.sectionInset = UIEdgeInsets(
-            top: constraintSpacing.small,
-            left: constraintSpacing.small,
-            bottom: constraintSpacing.small,
-            right: constraintSpacing.small)
+            top: ConstraintSpacing.small,
+            left: ConstraintSpacing.small,
+            bottom: ConstraintSpacing.small,
+            right: ConstraintSpacing.small)
         return layout
     }()
     private lazy var currencyCollectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
@@ -58,17 +58,23 @@ final class CurrencyConversionViewController: UIViewController {
         setupCurrencyDataGenerator()
         initViews()
         initTimer()
+        currencyDataGenerator.generateNewValues()
         updateViewFromModel()
     }
 }
 
+// MARK: - Private Methods
 private extension CurrencyConversionViewController {
     func updateViewFromModel() {
+        let currencyToReselectIndex = selectedCurrecnyToChooseIndex
         for index in currencyDataGenerator.chosenCurrencies.indices {
             currenciesToChoose[index].currencyText = currencyDataGenerator.chosenCurrencies[index].stringToDisplay
         }
         currencyCollectionView.reloadData()
         updateConversionResult()
+        if let currencyToReselectIndex {
+            currenciesToChoose[currencyToReselectIndex].isChosen = true
+        }
     }
     
     func updateFilterButtonsState(lastTappedButton: UIButton) {
@@ -82,18 +88,21 @@ private extension CurrencyConversionViewController {
             atChosenCurrencyIndex: DefaultValues.convertFromCurrencyIndex,
             toChosenCurrencyIndex: DefaultValues.convertToCurrencyIndex
         )
-        conversionResult = conversionRate * (Double(amountToConvertTextField.text ?? "0") ?? 0)
+        conversionResult = conversionRate * (Double(amountToConvertTextField.text ?? "0") ?? .zero)
     }
     
     func updateConversionResultLabel() {
         conversionResultLabel.text = conversionResultText
     }
     
+    func updateTimerLabel() {
+        timerLabel.text = timerLabelText
+    }
+    
     func initViews() {
         addSubviews()
         setupUI()
         setConstraints()
-        currencyDataGenerator.generateNewValues()
     }
     
     func addSubviews() {
@@ -105,7 +114,10 @@ private extension CurrencyConversionViewController {
         view.addSubview(currencyStackView)
         
         currencyCollectionView.register(CurrencyCell.self, forCellWithReuseIdentifier: CurrencyCell.identifier)
+        currencyCollectionView.register(EmptyCell.self, forCellWithReuseIdentifier: EmptyCell.identifier)
         view.addSubview(currencyCollectionView)
+        
+        view.addSubview(favoriteFilterSwitch)
         
         filterButtonsStackView.addArrangedSubview(showAllButton)
         filterButtonsStackView.addArrangedSubview(showFiatButton)
@@ -131,6 +143,7 @@ private extension CurrencyConversionViewController {
         setupConversionStackView()
         setupAmountToConvertTextField()
         setupConversionResultLabel()
+        setupFavoriteFilterSwitch()
     }
     
     func setupCurrenciesToChoose() {
@@ -153,7 +166,7 @@ private extension CurrencyConversionViewController {
     
     func setupCurrencyStackView() {
         currencyStackView.axis = .horizontal
-        currencyStackView.spacing = stackViewSpacing.small
+        currencyStackView.spacing = StackViewSpacing.small
         currencyStackView.distribution = .fillEqually
     }
     
@@ -163,14 +176,14 @@ private extension CurrencyConversionViewController {
     
     func setupFilterButtonsStackView() {
         filterButtonsStackView.axis = .horizontal
-        filterButtonsStackView.spacing = stackViewSpacing.extraSmall
+        filterButtonsStackView.spacing = StackViewSpacing.extraSmall
         filterButtonsStackView.distribution = .fillEqually
     }
     
     func setupShowAllButton() {
         showAllButton.setTitle(Texts.showAllButtonText, for: .normal)
-        showAllButton.layer.borderWidth = 1
-        showAllButton.layer.cornerRadius = 5
+        showAllButton.layer.borderWidth = BorderWidth.thin
+        showAllButton.layer.cornerRadius = CornerRadius.small
         showAllButton.backgroundColor = .white
         showAllButton.setTitleColor(.systemBlue, for: .selected)
         showAllButton.setTitleColor(.black, for: .normal)
@@ -180,8 +193,8 @@ private extension CurrencyConversionViewController {
     
     func setupShowFiatButton() {
         showFiatButton.setTitle(Texts.showFiatButtonText, for: .normal)
-        showFiatButton.layer.borderWidth = 1
-        showFiatButton.layer.cornerRadius = 5
+        showFiatButton.layer.borderWidth = BorderWidth.thin
+        showFiatButton.layer.cornerRadius = CornerRadius.small
         showFiatButton.backgroundColor = .white
         showFiatButton.setTitleColor(.systemBlue, for: .selected)
         showFiatButton.setTitleColor(.black, for: .normal)
@@ -190,8 +203,8 @@ private extension CurrencyConversionViewController {
     
     func setupShowCryptoButton() {
         showCryptoButton.setTitle(Texts.showCryptoButtonText, for: .normal)
-        showCryptoButton.layer.borderWidth = 1
-        showCryptoButton.layer.cornerRadius = 5
+        showCryptoButton.layer.borderWidth = BorderWidth.thin
+        showCryptoButton.layer.cornerRadius = CornerRadius.small
         showCryptoButton.backgroundColor = .white
         showCryptoButton.setTitleColor(.systemBlue, for: .selected)
         showCryptoButton.setTitleColor(.black, for: .normal)
@@ -199,19 +212,19 @@ private extension CurrencyConversionViewController {
     }
     
     func setupTimerLabel() {
-        timerLabel.font = AppFonts.title
+        timerLabel.font = AppFonts.headline
         timerLabel.text = timerLabelText
     }
     
     func setupConversionStackView() {
         conversionStackView.axis = .horizontal
-        conversionStackView.spacing = stackViewSpacing.standard
+        conversionStackView.spacing = StackViewSpacing.standard
         conversionStackView.distribution = .fillEqually
     }
     
     func setupAmountToConvertTextField() {
         amountToConvertTextField.font = AppFonts.body
-        amountToConvertTextField.layer.borderWidth = 1
+        amountToConvertTextField.layer.borderWidth = BorderWidth.thin
         amountToConvertTextField.keyboardType = .decimalPad
         amountToConvertTextField.delegate = self
         amountToConvertTextField.backgroundColor = .white
@@ -222,12 +235,17 @@ private extension CurrencyConversionViewController {
         conversionResultLabel.font = AppFonts.body
     }
     
+    func setupFavoriteFilterSwitch() {
+        favoriteFilterSwitch.delegate = self
+    }
+    
     func setConstraints() {
         setCurrencyStakViewConstraints()
         setCurrencyCollectionViewConstraints()
         setFilterButtonsStackViewConstraints()
         setTimerLabelConstraints()
         setConversionStackViewConstraints()
+        setFavoriteFilterSwitchConstraints()
     }
     
     func setCurrencyStakViewConstraints() {
@@ -235,15 +253,15 @@ private extension CurrencyConversionViewController {
         NSLayoutConstraint.activate([
             currencyStackView.leadingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.leadingAnchor,
-                constant: constraintSpacing.standard
+                constant: ConstraintSpacing.standard
             ),
             currencyStackView.trailingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.trailingAnchor,
-                constant: -constraintSpacing.standard
+                constant: -ConstraintSpacing.standard
             ),
             currencyStackView.topAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.topAnchor,
-                constant: constraintSpacing.standard
+                constant: ConstraintSpacing.standard
             )
         ])
     }
@@ -253,15 +271,15 @@ private extension CurrencyConversionViewController {
         NSLayoutConstraint.activate([
             filterButtonsStackView.leadingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.leadingAnchor,
-                constant: constraintSpacing.standard
+                constant: ConstraintSpacing.standard
             ),
             filterButtonsStackView.trailingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.trailingAnchor,
-                constant: -constraintSpacing.standard
+                constant: -ConstraintSpacing.standard
             ),
             filterButtonsStackView.topAnchor.constraint(
-                equalTo: conversionStackView.bottomAnchor,
-                constant: constraintSpacing.standard
+                equalTo: favoriteFilterSwitch.bottomAnchor,
+                constant: ConstraintSpacing.standard
             )
         ])
     }
@@ -271,19 +289,19 @@ private extension CurrencyConversionViewController {
         NSLayoutConstraint.activate([
             currencyCollectionView.bottomAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.bottomAnchor,
-                constant: -constraintSpacing.standard
+                constant: -ConstraintSpacing.standard
             ),
             currencyCollectionView.trailingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.trailingAnchor,
-                constant: -constraintSpacing.standard
+                constant: -ConstraintSpacing.standard
             ),
             currencyCollectionView.leadingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.leadingAnchor,
-                constant: constraintSpacing.standard
+                constant: ConstraintSpacing.standard
             ),
             currencyCollectionView.topAnchor.constraint(
                 equalTo: filterButtonsStackView.bottomAnchor,
-                constant: constraintSpacing.standard
+                constant: ConstraintSpacing.standard
             )
         ])
     }
@@ -293,15 +311,15 @@ private extension CurrencyConversionViewController {
         NSLayoutConstraint.activate([
             timerLabel.leadingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.leadingAnchor,
-                constant: constraintSpacing.standard
+                constant: ConstraintSpacing.standard
             ),
             timerLabel.trailingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.trailingAnchor,
-                constant: -constraintSpacing.standard
+                constant: -ConstraintSpacing.standard
             ),
             timerLabel.topAnchor.constraint(
                 equalTo: currencyStackView.bottomAnchor,
-                constant: constraintSpacing.standard
+                constant: ConstraintSpacing.standard
             )
         ])
     }
@@ -311,22 +329,41 @@ private extension CurrencyConversionViewController {
         NSLayoutConstraint.activate([
             conversionStackView.leadingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.leadingAnchor,
-                constant: constraintSpacing.standard
+                constant: ConstraintSpacing.standard
             ),
             conversionStackView.trailingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.trailingAnchor,
-                constant: -constraintSpacing.standard
+                constant: -ConstraintSpacing.standard
             ),
             conversionStackView.topAnchor.constraint(
                 equalTo: timerLabel.bottomAnchor,
-                constant: constraintSpacing.standard
+                constant: ConstraintSpacing.standard
+            )
+        ])
+    }
+    
+    func setFavoriteFilterSwitchConstraints() {
+        favoriteFilterSwitch.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            favoriteFilterSwitch.leadingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.leadingAnchor,
+                constant: ConstraintSpacing.standard
+            ),
+            favoriteFilterSwitch.trailingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.trailingAnchor,
+                constant: -ConstraintSpacing.standard
+            ),
+            favoriteFilterSwitch.topAnchor.constraint(
+                equalTo: conversionStackView.bottomAnchor,
+                constant: ConstraintSpacing.standard
             )
         ])
     }
     
     func initTimer() {
+        
         timer = Timer.scheduledTimer(
-            timeInterval: 0.01,
+            timeInterval: DefaultValues.timerTimeInterval,
             target: self,
             selector: #selector(handleTimerTick),
             userInfo: nil,
@@ -334,18 +371,23 @@ private extension CurrencyConversionViewController {
         )
     }
     
-    func updateTimerLabel() {
-        timerLabel.text = timerLabelText
+    func deselectAllCurrenciesToChoose() {
+        for index in currenciesToChoose.indices {
+            currenciesToChoose[index].isChosen = false
+        }
     }
-    
+}
+
+//MARK: - Action Handlers
+private extension CurrencyConversionViewController {
     @objc
     func handleTimerTick() {
-        timerTimeLeft -= 0.01
+        timerTimeLeft -= DefaultValues.timerTimeInterval
         updateTimerLabel()
-        if timerTimeLeft <= 0 {
+        if timerTimeLeft <= .zero {
             currencyDataGenerator.generateNewValues()
             updateViewFromModel()
-            timerTimeLeft = timerDuration
+            timerTimeLeft = DefaultValues.timerDuration
         }
     }
     
@@ -366,7 +408,7 @@ private extension CurrencyConversionViewController {
         } else if sender == showCryptoButton {
             currencyDataGenerator.filterCurrenciesByType(CurrencyType.crypto)
         } else {
-            currencyDataGenerator.clearFilters()
+            currencyDataGenerator.clearFilterByType()
         }
         updateFilterButtonsState(lastTappedButton: sender)
         updateViewFromModel()
@@ -379,13 +421,7 @@ private extension CurrencyConversionViewController {
             atChosenCurrencyIndex: DefaultValues.convertFromCurrencyIndex,
             toChosenCurrencyIndex: DefaultValues.convertToCurrencyIndex
         )
-        conversionResult = conversionRate * (Double(sender.text ?? "0") ?? 0)
-    }
-    
-    func deselectAllCurrenciesToChoose() {
-        for index in currenciesToChoose.indices {
-            currenciesToChoose[index].isChosen = false
-        }
+        conversionResult = conversionRate * (Double(sender.text ?? "0") ?? .zero)
     }
 }
 
@@ -397,29 +433,49 @@ extension CurrencyConversionViewController: CurrencyDelegatePrtocol {
             updateViewFromModel()
         }
     }
+    
+    func favoriteMarkChanged() {
+        updateViewFromModel()
+    }
 }
 
 extension CurrencyConversionViewController: UITextFieldDelegate {
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-        let decimalCharacters = CharacterSet(charactersIn: "0123456789.")
+        let decimalCharacters = CharacterSet(charactersIn: String.allDecimalCharacters)
         let characterSet = CharacterSet(charactersIn: string)
         return decimalCharacters.isSuperset(of: characterSet)
+    }
+}
+
+extension CurrencyConversionViewController: FavoriteFilterSwitchDelegate {
+    func switchFilter(isFilterOn: Bool) {
+        currencyDataGenerator.switchFilterByFavorite(isFilterOn: isFilterOn)
+        updateViewFromModel()
     }
 }
 
 // MARK: - Constants
 private extension CurrencyConversionViewController {
     struct DefaultValues {
-        static let amountOfCurrencuesToGenerate = Int.random(in: 100...180)
+        static let amountOfCurrencuesToGenerate = Int.random(in: 100...200)
         static let amountOfCurrenciesToChoose = 2
-        static let layotItemSize = CGSize(width: 100, height: 30)
+        static let layotItemSize = CGSize(width: 150, height: 60)
         static let convertFromCurrencyIndex = 0
         static let convertToCurrencyIndex = 1
+        static let timerDuration: Double = 5
+        // Timer ticks every one hundredth of a second
+        static let timerTimeInterval = 0.01
     }
     
     struct Texts {
         static let showAllButtonText = "Show all"
         static let showFiatButtonText = "Show fiat"
         static let showCryptoButtonText = "Show crypto"
+    }
+}
+
+private extension String {
+    static var allDecimalCharacters: String {
+        return "0123456789."
     }
 }

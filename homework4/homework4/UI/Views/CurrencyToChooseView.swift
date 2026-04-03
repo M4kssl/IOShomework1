@@ -35,7 +35,7 @@ final class CurrencyToChooseView: UIView {
 // MARK: - Private Methods
 private extension CurrencyToChooseView {
     func updateUI() {
-        currencyLabel.textColor = isChosen ? .gray : .black
+        currencyLabel.layer.backgroundColor = isChosen ? UIColor.white.cgColor : nil
         currencyLabel.text = currencyText
     }
     
@@ -56,8 +56,8 @@ private extension CurrencyToChooseView {
     func setupChosenCurrencyLabel() {
         currencyLabel.font = AppFonts.body
         currencyLabel.text = defaultTexts.emptyLabel
-        currencyLabel.layer.cornerRadius = 10
-        currencyLabel.layer.borderWidth = 1
+        currencyLabel.layer.cornerRadius = CornerRadius.standard
+        currencyLabel.layer.borderWidth = BorderWidth.thin
         currencyLabel.textAlignment = .center
     }
     

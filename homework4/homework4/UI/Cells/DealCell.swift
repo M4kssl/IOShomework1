@@ -53,7 +53,7 @@ private extension DealCell {
         contentView.backgroundColor = .white
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.axis = .vertical
-        stackView.spacing = stackViewSpacing.extraSmall
+        stackView.spacing = StackViewSpacing.extraSmall
         dealLabel.font = AppFonts.headline
         resultLabel.font = AppFonts.footnote
         resultLabel.numberOfLines = .zero
@@ -71,10 +71,10 @@ private extension DealCell {
     
     func setStackViewConstraints() {
         NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: constraintSpacing.extraSmall),
-            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -constraintSpacing.extraSmall),
-            stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: constraintSpacing.extraSmall),
-            stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -constraintSpacing.extraSmall)
+            stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: ConstraintSpacing.extraSmall),
+            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -ConstraintSpacing.extraSmall),
+            stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ConstraintSpacing.extraSmall),
+            stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ConstraintSpacing.extraSmall)
         ])
     }
 }

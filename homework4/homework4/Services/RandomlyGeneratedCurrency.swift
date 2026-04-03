@@ -13,6 +13,7 @@ struct RandomlyGeneratedCurrency {
     let value: Double
     let type: CurrencyType
     let isChosen: Bool
+    let isFavorited: Bool
 }
 
 // MARK: - Static Methods
@@ -39,7 +40,8 @@ extension RandomlyGeneratedCurrency {
             name: "Choose currency",
             value: 0,
             type: .crypto,
-            isChosen: false
+            isChosen: false,
+            isFavorited: false
         )
     }
 }

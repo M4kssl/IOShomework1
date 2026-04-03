@@ -15,6 +15,7 @@ enum CurrencyType: String, CaseIterable {
 
 protocol CurrencyDelegatePrtocol: AnyObject {
     func currencyChosen(_ currency: RandomlyGeneratedCurrency)
+    func favoriteMarkChanged()
 }
 
 protocol CurrencyDataProviderProtocol {
@@ -25,14 +26,15 @@ protocol CurrencyDataProviderProtocol {
     func generateNewValues()
     func chooseCurrency(currency: RandomlyGeneratedCurrency, chosenCurrenciesIndex: Int)
     func filterCurrenciesByType(_ currencyType: CurrencyType)
-    func clearFilters()
+    func clearFilterByType()
     func convertCurrency(atChosenCurrencyIndex fromIndex: Int, toChosenCurrencyIndex toIndex: Int) -> Double
+    func switchFilterByFavorite(isFilterOn: Bool)
 
 }
 
 final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
     private var currencyTypeFilteredBy: CurrencyType?
-    
+    private var isFilteredByFavorite: Bool = false
     private(set) var allCurrencies = [RandomlyGeneratedCurrency]()
     private(set) var filteredCurrencies = [RandomlyGeneratedCurrency]()
     private(set) var chosenCurrencies = [RandomlyGeneratedCurrency]() {
@@ -53,7 +55,8 @@ final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
                     name: name,
                     value: Double.random(in: 10...1000),
                     type: CurrencyType.allCases.randomElement() ?? .crypto,
-                    isChosen: false
+                    isChosen: false,
+                    isFavorited: false
                 )
             )
         }
@@ -69,7 +72,8 @@ final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
                 name: allCurrencies[index].name,
                 value: .random(in: 10...1000),
                 type: allCurrencies[index].type,
-                isChosen: allCurrencies[index].isChosen
+                isChosen: allCurrencies[index].isChosen,
+                isFavorited: allCurrencies[index].isFavorited
             )
             allCurrencies[index] = currency
             if currency.isChosen {
@@ -81,6 +85,9 @@ final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
         if let currencyTypeFilteredBy {
             filterCurrenciesByType(currencyTypeFilteredBy)
         }
+        if isFilteredByFavorite {
+            turnFavoriteFilterOn()
+        }
     }
     
     func chooseCurrency(currency: RandomlyGeneratedCurrency, chosenCurrenciesIndex: Int) {
@@ -90,24 +97,41 @@ final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
                 name: currency.name,
                 value: currency.value,
                 type: currency.type,
-                isChosen: true
+                isChosen: true,
+                isFavorited: currency.isFavorited
             )
             addCurencyToChosen(currency: chosenCurrency, atIndex: chosenCurrenciesIndex)
         }
     }
     
-    func clearFilters() {
+    func clearFilterByType() {
         currencyTypeFilteredBy = nil
-        filteredCurrencies.removeAll()
+        if isFilteredByFavorite {
+            filteredCurrencies = allCurrencies.filter { $0.isFavorited }
+        } else {
+            filteredCurrencies.removeAll()
+        }
     }
     
     func filterCurrenciesByType(_ currencyType: CurrencyType) {
         currencyTypeFilteredBy = currencyType
         filteredCurrencies = allCurrencies.filter { $0.type == currencyType }
+        if isFilteredByFavorite {
+            filteredCurrencies = filteredCurrencies.filter { $0.isFavorited }
+        }
     }
     
     func convertCurrency(atChosenCurrencyIndex fromIndex: Int, toChosenCurrencyIndex toIndex: Int) -> Double {
         return chosenCurrencies[toIndex].value == 0 ? 0 : chosenCurrencies[fromIndex].value / chosenCurrencies[toIndex].value
+    }
+    
+    func switchFilterByFavorite(isFilterOn: Bool) {
+        isFilteredByFavorite = isFilterOn
+        if isFilterOn {
+            turnFavoriteFilterOn()
+        } else {
+            turnFavoriteFilterOff()
+        }
     }
 }
 
@@ -115,6 +139,22 @@ final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
 private extension CurrencyDataProvider {
     func addCurencyToChosen(currency: RandomlyGeneratedCurrency, atIndex index: Int) {
         chosenCurrencies[index] = currency
+    }
+    
+    func turnFavoriteFilterOn() {
+        if currencyTypeFilteredBy != nil {
+            filteredCurrencies = filteredCurrencies.filter { $0.isFavorited }
+        } else {
+            filteredCurrencies = allCurrencies.filter { $0.isFavorited }
+        }
+    }
+    
+    func turnFavoriteFilterOff() {
+        if let currencyTypeFilteredBy {
+            filterCurrenciesByType(currencyTypeFilteredBy)
+        } else {
+            clearFilterByType()
+        }
     }
     
     func synchronizeCurrencies() {
@@ -126,7 +166,9 @@ private extension CurrencyDataProvider {
                     name: allCurrencies[index].name,
                     value: allCurrencies[index].value,
                     type: allCurrencies[index].type,
-                    isChosen: true
+                    isChosen: true,
+                    isFavorited: allCurrencies[index].isFavorited,
+                    
                 )
             } else {
                 allCurrencies[index] = RandomlyGeneratedCurrency(
@@ -134,7 +176,8 @@ private extension CurrencyDataProvider {
                     name: allCurrencies[index].name,
                     value: allCurrencies[index].value,
                     type: allCurrencies[index].type,
-                    isChosen: false
+                    isChosen: false,
+                    isFavorited: allCurrencies[index].isFavorited
                 )
             }
         }
@@ -150,23 +193,69 @@ private extension CurrencyDataProvider {
         }
         return identifiers
     }
+    
+    func changeFavoriteMark(currency: RandomlyGeneratedCurrency) {
+        if let index = allCurrencies.firstIndex(where: { $0.id == currency.id }) {
+            allCurrencies[index] = RandomlyGeneratedCurrency(
+                id: allCurrencies[index].id,
+                name: allCurrencies[index].name,
+                value: allCurrencies[index].value,
+                type: allCurrencies[index].type,
+                isChosen: allCurrencies[index].isChosen,
+                isFavorited: !allCurrencies[index].isFavorited)
+        }
+    }
 }
 
 extension CurrencyDataProvider: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return currencyTypeFilteredBy != nil ? filteredCurrencies.count : allCurrencies.count
+        var count: Int
+        if isFilteredByFavorite || currencyTypeFilteredBy != nil {
+            count = filteredCurrencies.count
+        } else {
+            count = allCurrencies.count
+        }
+        return count == 0 ? 1 : count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CurrencyCell.identifier, for: indexPath) as? CurrencyCell
-        cell?.displayedCurrency = currencyTypeFilteredBy != nil ? filteredCurrencies[indexPath.row] : allCurrencies[indexPath.row]
-        return cell ?? UICollectionViewCell()
+        var arrayToDisplay = [RandomlyGeneratedCurrency]()
+        if isFilteredByFavorite || currencyTypeFilteredBy != nil {
+            arrayToDisplay = filteredCurrencies
+        } else {
+            arrayToDisplay = allCurrencies
+        }
+        if arrayToDisplay.isEmpty {
+            let cell = collectionView.dequeueReusableCell(
+                withReuseIdentifier: EmptyCell.identifier,
+                for: indexPath)
+            return cell
+        } else {
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CurrencyCell.identifier,for: indexPath) as? CurrencyCell
+            cell?.delegate = self
+            cell?.displayedCurrency = arrayToDisplay[indexPath.row]
+            return cell ?? UICollectionViewCell()
+        }
     }
 }
 
 extension CurrencyDataProvider: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let currency = currencyTypeFilteredBy != nil ? filteredCurrencies[indexPath.row] : allCurrencies[indexPath.row]
-        delegate?.currencyChosen(currency)
+        var arrayToDisplay = [RandomlyGeneratedCurrency]()
+        if isFilteredByFavorite || currencyTypeFilteredBy != nil {
+            arrayToDisplay = filteredCurrencies
+        } else {
+            arrayToDisplay = allCurrencies
+        }
+        if !arrayToDisplay.isEmpty {
+            delegate?.currencyChosen(arrayToDisplay[indexPath.row])
+        }
+    }
+}
+
+extension CurrencyDataProvider: CurrencyCellDelegate {
+    func favoiteMarkChanged(for currency: RandomlyGeneratedCurrency) {
+        changeFavoriteMark(currency: currency)
+        delegate?.favoriteMarkChanged()
     }
 }
