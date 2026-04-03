@@ -7,7 +7,7 @@
 
 import UIKit
 
-final class ViewController: UIViewController {
+final class BotViewController: UIViewController {
     private lazy var traderBot = Bot(logger: viewLogger, historyhandler: botHistoryHandler)
     private lazy var botHistoryHandler = BotHistoryHandler()
     private lazy var viewLogger = TextViewLogger(textView: botOutput)
@@ -30,7 +30,7 @@ final class ViewController: UIViewController {
 }
 
 // MARK: - Private Methods
-private extension ViewController {
+private extension BotViewController {
     func initViews() {
         view.backgroundColor = .systemYellow
         addInitialLabel()
@@ -105,7 +105,7 @@ private extension ViewController {
         dealHistoryTableView.translatesAutoresizingMaskIntoConstraints = false
         dealHistoryTableView.register(DealCell.self, forCellReuseIdentifier: DealCell.identifier)
         dealHistoryTableView.dataSource = self
-        dealHistoryTableView.alpha = 0
+        dealHistoryTableView.alpha = .zero
         dealHistoryTableView.layer.borderWidth = 1
     }
     
@@ -132,7 +132,10 @@ private extension ViewController {
     
     func setRunButtonConstraints() {
         NSLayoutConstraint.activate([
-            runButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            runButton.bottomAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.bottomAnchor,
+                constant: -constraintSpacing.standard
+            ),
             runButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
     }
@@ -140,18 +143,39 @@ private extension ViewController {
     func setTextViewConstraints() {
         NSLayoutConstraint.activate([
             botOutput.heightAnchor.constraint(greaterThanOrEqualToConstant: 200),
-            botOutput.bottomAnchor.constraint(equalTo: runButton.topAnchor, constant: -16),
-            botOutput.topAnchor.constraint(lessThanOrEqualTo: customerSupportView.bottomAnchor, constant: 64),
-            botOutput.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
-            botOutput.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16)
+            botOutput.bottomAnchor.constraint(
+                equalTo: runButton.topAnchor,
+                constant: -constraintSpacing.standard
+            ),
+            botOutput.topAnchor.constraint(
+                lessThanOrEqualTo: customerSupportView.bottomAnchor,
+                constant: constraintSpacing.extraLarge
+            ),
+            botOutput.leadingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.leadingAnchor,
+                constant: constraintSpacing.standard
+            ),
+            botOutput.trailingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.trailingAnchor,
+                constant: -constraintSpacing.standard
+            )
         ])
     }
     
     func setCurrencyStackViewConstraints() {
         NSLayoutConstraint.activate([
-            currencyStackView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
-            currencyStackView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
-            currencyStackView.topAnchor.constraint(equalTo: superviewForLabel.bottomAnchor, constant: 16)
+            currencyStackView.leadingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.leadingAnchor,
+                constant: constraintSpacing.standard
+            ),
+            currencyStackView.trailingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.trailingAnchor,
+                constant: -constraintSpacing.standard
+            ),
+            currencyStackView.topAnchor.constraint(
+                equalTo: superviewForLabel.bottomAnchor,
+                constant: constraintSpacing.standard
+            )
         ])
     }
     
@@ -167,16 +191,28 @@ private extension ViewController {
     
     func setViewForLabelConstraints() {
         NSLayoutConstraint.activate([
-            superviewForLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            superviewForLabel.topAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.topAnchor,
+                constant: constraintSpacing.standard
+            ),
             superviewForLabel.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor)
         ])
     }
     
     func setCustomerSupportViewConstraints() {
         NSLayoutConstraint.activate([
-            customerSupportView.leadingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
-            customerSupportView.trailingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
-            customerSupportView.topAnchor.constraint(equalTo: currencyStackView.bottomAnchor, constant: 16),
+            customerSupportView.leadingAnchor.constraint(
+                greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor,
+                constant: constraintSpacing.standard
+            ),
+            customerSupportView.trailingAnchor.constraint(
+                greaterThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor,
+                constant: -constraintSpacing.standard
+            ),
+            customerSupportView.topAnchor.constraint(
+                equalTo: currencyStackView.bottomAnchor,
+                constant: constraintSpacing.standard
+            ),
             customerSupportView.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor)
         ])
     }
@@ -184,15 +220,27 @@ private extension ViewController {
     func setDealHistoryTableViewConstraints() {
         NSLayoutConstraint.activate([
             dealHistoryTableView.heightAnchor.constraint(greaterThanOrEqualToConstant: 200),
-            dealHistoryTableView.bottomAnchor.constraint(equalTo: runButton.topAnchor, constant: -16),
-            dealHistoryTableView.topAnchor.constraint(lessThanOrEqualTo: customerSupportView.bottomAnchor, constant: 64),
-            dealHistoryTableView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
-            dealHistoryTableView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16)
+            dealHistoryTableView.bottomAnchor.constraint(
+                equalTo: runButton.topAnchor,
+                constant: -constraintSpacing.standard
+            ),
+            dealHistoryTableView.topAnchor.constraint(
+                lessThanOrEqualTo: customerSupportView.bottomAnchor,
+                constant: constraintSpacing.extraLarge
+            ),
+            dealHistoryTableView.leadingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.leadingAnchor,
+                constant: constraintSpacing.standard
+            ),
+            dealHistoryTableView.trailingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.trailingAnchor,
+                constant: -constraintSpacing.standard
+            )
         ])
     }
     
     func textForCurrencylabel(currency: Currency) -> String {
-        return "\(currency.name.rawValue.uppercased()) - \(String(format: "%.2f", currency.value))"
+        return "\(currency.name.rawValue.uppercased()) - \(currency.value.stringWithTwoDecimalPlaces)"
     }
     
     func updateViewFromModel() {
@@ -202,7 +250,7 @@ private extension ViewController {
         }
         dealHistoryTableView.reloadData()
         
-        if traderBot.decisionsMade > 0, dealHistoryTableView.alpha == 0 {
+        if traderBot.decisionsMade > .zero, dealHistoryTableView.alpha == .zero {
             crossDissolveViews(form: initialInfoLabel, to: dealHistoryTableView)
         }
     }
@@ -232,7 +280,7 @@ private extension ViewController {
         UIView.animate(
             withDuration: 0.6,
             animations: {
-                oldView.alpha = 0
+                oldView.alpha = .zero
                 newView.alpha = 1
             },
             completion: nil
@@ -240,7 +288,7 @@ private extension ViewController {
     }
 }
 
-extension ViewController: UITableViewDataSource {
+extension BotViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return traderBot.getDealHistory().count
     }
@@ -253,7 +301,7 @@ extension ViewController: UITableViewDataSource {
 }
 
 // MARK: - Constants
-private extension ViewController {
+private extension BotViewController {
     struct defaultTexts {
         static let runButtonText = "Run Bot"
         static let initialInfoLabel = "No data"

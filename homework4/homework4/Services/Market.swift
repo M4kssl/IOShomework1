@@ -28,7 +28,7 @@ struct MarketResponse {
 final class Market: MarketProtocol {
     private(set) var currencies: [Currency] = []
     
-    init(){
+    init() {
         for currency in Currency.CurrencyName.allCases {
             currencies.append(Currency(name: currency, quantity: 80, value: Double.random(in: 1...100)))
         }

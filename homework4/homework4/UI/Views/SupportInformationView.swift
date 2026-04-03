@@ -33,7 +33,7 @@ private extension SupportInformationView {
         
     func addStackview() {
         stackView.axis = .horizontal
-        stackView.spacing = 12
+        stackView.spacing = stackViewSpacing.standard
         stackView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stackView)
     }

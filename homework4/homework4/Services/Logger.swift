@@ -27,7 +27,7 @@ final class TextViewLogger: LoggerProtocol {
     func logLastDealResult(_ dealHistory: [Deal]) {
         if let lastDeal = dealHistory.last {
             var actionToSearch: Action
-            var fromValue: Double = 0
+            var fromValue: Double = .zero
             let toValue: Double = lastDeal.currency.quantity * lastDeal.currency.value
             var income: Double {
                 return toValue - fromValue
