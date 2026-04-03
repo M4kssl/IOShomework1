@@ -39,8 +39,6 @@ protocol BotProtocol {
 }
 
 final class Bot: BotProtocol {
-    private let maxValueToPurchase: Double = 65
-    private let logger: LoggerProtocol
     private var dealHistory: [Deal] = []
     
     private(set) var balance: Double
@@ -49,25 +47,23 @@ final class Bot: BotProtocol {
     
     let historyHandler: DealHistoryHandlerProtocol
     
-    init (logger: LoggerProtocol, historyhandler: DealHistoryHandlerProtocol) {
-        balance = 1000
+    init (historyhandler: DealHistoryHandlerProtocol) {
+        balance = DefaultValues.initialBalance
         for currency in Currency.CurrencyName.allCases {
-            currenciesOnHand.append(Currency(name: currency, quantity: 0, value: 0))
+            currenciesOnHand.append(Currency(name: currency, quantity: .zero, value: .zero))
         }
         self.historyHandler = historyhandler
-        self.logger = logger
     }
     
     func decideOnAction(for currency: Currency) -> Action {
         var decidedAction = Action.ignore
         if let currencyOnHand = currenciesOnHand.first(where: { $0.name == currency.name }) {
-            if currencyOnHand.quantity > 0, currencyOnHand.value < currency.value {
+            if currencyOnHand.quantity > .zero, currencyOnHand.value < currency.value {
                 decidedAction = .sell
-            } else if currencyOnHand.quantity == 0, currency.value <= balance, currency.value < maxValueToPurchase {
+            } else if currencyOnHand.quantity == .zero, currency.value <= balance, currency.value < DefaultValues.maxValueToPurchase {
                 decidedAction = .purchase
             }
         }
-        logger.logAction(decidedAction, for: currency)
         decisionsMade += 1
         return decidedAction
     }
@@ -81,22 +77,21 @@ final class Bot: BotProtocol {
             if let currencyOnHand = currenciesOnHand.first(where: { $0.name == currency.name }) {
                 return RequestForMarket(action: action, currency: currency, quantity: currencyOnHand.quantity)
             } else {
-                return RequestForMarket(action: .ignore, currency: currency, quantity: 0)
+                return RequestForMarket(action: .ignore, currency: currency, quantity: .zero)
             }
         default:
-            return RequestForMarket(action: .ignore, currency: currency, quantity: 0)
+            return RequestForMarket(action: .ignore, currency: currency, quantity: .zero)
         }
     }
     
     func processMarketResponse(_ response: MarketResponse) {
         guard response.status == .success else {
-            logger.logMarketResponse(response)
             return
         }
         if let index = currenciesOnHand.firstIndex(where: { $0.name == response.request.currency.name }) {
-            var newQuantity: Double = 0
-            var newValue: Double = 0
-            switch response.request.action{
+            var newQuantity: Double = .zero
+            var newValue: Double = .zero
+            switch response.request.action {
             case .purchase:
                 newQuantity = currenciesOnHand[index].quantity + response.request.quantity
                 newValue = response.request.currency.value
@@ -109,7 +104,6 @@ final class Bot: BotProtocol {
             }
             currenciesOnHand[index] = Currency(name: response.request.currency.name, quantity: newQuantity, value: newValue)
             registerDeal(for: response.request.currency, action: response.request.action)
-            logger.logLastDealResult(dealHistory)
         }
     }
     
@@ -138,5 +132,12 @@ private extension Bot {
     private static func quantityToBuy(for currency: Currency, _ balance: Double) -> Double {
         let maximumQuantity = balance/currency.value
         return Double.random(in: 1...maximumQuantity)
+    }
+}
+
+extension Bot {
+    struct DefaultValues {
+        static let maxValueToPurchase: Double = 65
+        static let initialBalance: Double = 1000
     }
 }

@@ -8,17 +8,15 @@
 import UIKit
 
 final class BotViewController: UIViewController {
-    private lazy var traderBot = Bot(logger: viewLogger, historyhandler: botHistoryHandler)
+    private lazy var traderBot = Bot(historyhandler: botHistoryHandler)
     private lazy var botHistoryHandler = BotHistoryHandler()
-    private lazy var viewLogger = TextViewLogger(textView: botOutput)
     private var market = Market()
     private let runButton = UIButton()
-    private let botOutput = UITextView()
     private var currencyLabels = [UILabel]()
     private let currencyStackView = UIStackView()
     private let phoneImage = UIImage()
-    private let superviewForLabel = UIView()
-    private let labelForSuperview = UILabel()
+    private let superviewFortTitleLabel = UIView()
+    private let titleLabel = UILabel()
     private let customerSupportView = SupportInformationView()
     private let initialInfoLabel = UILabel()
     private let dealHistoryTableView = UITableView()
@@ -35,7 +33,6 @@ private extension BotViewController {
         view.backgroundColor = .systemYellow
         addInitialLabel()
         addRunButton()
-        addTextView()
         addDealHistoryTableView()
         addCurrencyInfoViews()
         addViewWithSubview()
@@ -44,31 +41,35 @@ private extension BotViewController {
     }
     
     func addInitialLabel() {
-        initialInfoLabel.attributedText = centeredAttributedString(defaultTexts.initialInfoLabel, fontSize: 50)
+        initialInfoLabel.attributedText = centeredAttributedString(
+            DefaultTexts.initialInfoLabel,
+            fontSize: DefaultSizes.initialLabelFontSize)
         initialInfoLabel.sizeToFit()
         initialInfoLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(initialInfoLabel)
     }
     
     func addViewWithSubview() {
-        superviewForLabel.translatesAutoresizingMaskIntoConstraints = false
-        superviewForLabel.backgroundColor = .systemRed
-        superviewForLabel.alpha = 0.8
-        labelForSuperview.attributedText = centeredAttributedString(defaultTexts.mainTitle, fontSize: 25)
-        labelForSuperview.sizeToFit()
-        labelForSuperview.textAlignment = .center
-        superviewForLabel.addSubview(labelForSuperview)
-        view.addSubview(superviewForLabel)
+        superviewFortTitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        superviewFortTitleLabel.backgroundColor = .systemRed
+        titleLabel.attributedText = centeredAttributedString(
+            DefaultTexts.mainTitle,
+            fontSize: DefaultSizes.titleLabelFontSize
+        )
+        titleLabel.sizeToFit()
+        titleLabel.textAlignment = .center
+        superviewFortTitleLabel.addSubview(titleLabel)
+        view.addSubview(superviewFortTitleLabel)
     }
     
     func addCurrencyInfoViews() {
-        currencyStackView.spacing = CGFloat(5)
+        currencyStackView.spacing = StackViewSpacing.small
         currencyStackView.axis = .vertical
         currencyStackView.translatesAutoresizingMaskIntoConstraints = false
         
         for currencyName in Currency.CurrencyName.allCases {
             let currencyLabel = UILabel()
-            currencyLabel.text = "\(currencyName.rawValue.uppercased()) - \(defaultTexts.initialCurrencyValue)"
+            currencyLabel.text = "\(currencyName.rawValue.uppercased()) - \(DefaultTexts.initialCurrencyValue)"
             currencyLabel.translatesAutoresizingMaskIntoConstraints = false
             currencyLabels.append(currencyLabel)
             currencyStackView.addArrangedSubview(currencyLabel)
@@ -81,21 +82,12 @@ private extension BotViewController {
         view.addSubview(customerSupportView)
     }
     
-    func addTextView() {
-        botOutput.layer.borderColor = UIColor.systemGray.cgColor
-        botOutput.layer.borderWidth = 0.5
-        botOutput.isEditable = false
-        botOutput.isHidden = true
-        view.addSubview(botOutput)
-        botOutput.translatesAutoresizingMaskIntoConstraints = false
-    }
-    
     func addRunButton() {
         view.addSubview(runButton)
-        runButton.setTitle(defaultTexts.runButtonText, for: .normal)
+        runButton.setTitle(DefaultTexts.runButtonText, for: .normal)
         runButton.backgroundColor = .systemBlue
         runButton.titleLabel?.textColor = .white
-        runButton.layer.cornerRadius = CGFloat(10)
+        runButton.layer.cornerRadius = CornerRadius.standard
         runButton.addTarget(self, action: #selector(runButtonTapped), for: .touchUpInside)
         runButton.translatesAutoresizingMaskIntoConstraints = false
     }
@@ -106,15 +98,14 @@ private extension BotViewController {
         dealHistoryTableView.register(DealCell.self, forCellReuseIdentifier: DealCell.identifier)
         dealHistoryTableView.dataSource = self
         dealHistoryTableView.alpha = .zero
-        dealHistoryTableView.layer.borderWidth = 1
+        dealHistoryTableView.layer.borderWidth = BorderWidth.thin
     }
     
     // MARK: - constraints
     func setConstraints() {
         setRunButtonConstraints()
-        setTextViewConstraints()
         setCurrencyStackViewConstraints()
-        setLabelForSuperviewConstraints()
+        settitleLabelConstraints()
         setViewForLabelConstraints()
         setInitialLabelConstraints()
         setCustomerSupportViewConstraints()
@@ -123,10 +114,10 @@ private extension BotViewController {
     
     func setInitialLabelConstraints() {
         NSLayoutConstraint.activate([
-            initialInfoLabel.topAnchor.constraint(equalTo: botOutput.topAnchor),
-            initialInfoLabel.bottomAnchor.constraint(equalTo: botOutput.bottomAnchor),
-            initialInfoLabel.leadingAnchor.constraint(equalTo: botOutput.leadingAnchor),
-            initialInfoLabel.trailingAnchor.constraint(equalTo: botOutput.trailingAnchor),
+            initialInfoLabel.topAnchor.constraint(equalTo: dealHistoryTableView.topAnchor),
+            initialInfoLabel.bottomAnchor.constraint(equalTo: dealHistoryTableView.bottomAnchor),
+            initialInfoLabel.leadingAnchor.constraint(equalTo: dealHistoryTableView.leadingAnchor),
+            initialInfoLabel.trailingAnchor.constraint(equalTo: dealHistoryTableView.trailingAnchor),
         ])
     }
     
@@ -134,31 +125,9 @@ private extension BotViewController {
         NSLayoutConstraint.activate([
             runButton.bottomAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.bottomAnchor,
-                constant: -constraintSpacing.standard
+                constant: -ConstraintSpacing.standard
             ),
             runButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
-        ])
-    }
-    
-    func setTextViewConstraints() {
-        NSLayoutConstraint.activate([
-            botOutput.heightAnchor.constraint(greaterThanOrEqualToConstant: 200),
-            botOutput.bottomAnchor.constraint(
-                equalTo: runButton.topAnchor,
-                constant: -constraintSpacing.standard
-            ),
-            botOutput.topAnchor.constraint(
-                lessThanOrEqualTo: customerSupportView.bottomAnchor,
-                constant: constraintSpacing.extraLarge
-            ),
-            botOutput.leadingAnchor.constraint(
-                equalTo: view.safeAreaLayoutGuide.leadingAnchor,
-                constant: constraintSpacing.standard
-            ),
-            botOutput.trailingAnchor.constraint(
-                equalTo: view.safeAreaLayoutGuide.trailingAnchor,
-                constant: -constraintSpacing.standard
-            )
         ])
     }
     
@@ -166,36 +135,36 @@ private extension BotViewController {
         NSLayoutConstraint.activate([
             currencyStackView.leadingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.leadingAnchor,
-                constant: constraintSpacing.standard
+                constant: ConstraintSpacing.standard
             ),
             currencyStackView.trailingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.trailingAnchor,
-                constant: -constraintSpacing.standard
+                constant: -ConstraintSpacing.standard
             ),
             currencyStackView.topAnchor.constraint(
-                equalTo: superviewForLabel.bottomAnchor,
-                constant: constraintSpacing.standard
+                equalTo: superviewFortTitleLabel.bottomAnchor,
+                constant: ConstraintSpacing.standard
             )
         ])
     }
     
-    func setLabelForSuperviewConstraints() {
+    func settitleLabelConstraints() {
         NSLayoutConstraint.activate([
-            labelForSuperview.topAnchor.constraint(equalTo: superviewForLabel.topAnchor),
-            labelForSuperview.bottomAnchor.constraint(equalTo: superviewForLabel.bottomAnchor),
-            labelForSuperview.trailingAnchor.constraint(equalTo: superviewForLabel.trailingAnchor),
-            labelForSuperview.leadingAnchor.constraint(equalTo: superviewForLabel.leadingAnchor),
-            labelForSuperview.centerXAnchor.constraint(equalTo: superviewForLabel.centerXAnchor)
+            titleLabel.topAnchor.constraint(equalTo: superviewFortTitleLabel.topAnchor),
+            titleLabel.bottomAnchor.constraint(equalTo: superviewFortTitleLabel.bottomAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: superviewFortTitleLabel.trailingAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: superviewFortTitleLabel.leadingAnchor),
+            titleLabel.centerXAnchor.constraint(equalTo: superviewFortTitleLabel.centerXAnchor)
         ])
     }
     
     func setViewForLabelConstraints() {
         NSLayoutConstraint.activate([
-            superviewForLabel.topAnchor.constraint(
+            superviewFortTitleLabel.topAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.topAnchor,
-                constant: constraintSpacing.standard
+                constant: ConstraintSpacing.standard
             ),
-            superviewForLabel.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor)
+            superviewFortTitleLabel.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor)
         ])
     }
     
@@ -203,15 +172,15 @@ private extension BotViewController {
         NSLayoutConstraint.activate([
             customerSupportView.leadingAnchor.constraint(
                 greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor,
-                constant: constraintSpacing.standard
+                constant: ConstraintSpacing.standard
             ),
             customerSupportView.trailingAnchor.constraint(
                 greaterThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor,
-                constant: -constraintSpacing.standard
+                constant: -ConstraintSpacing.standard
             ),
             customerSupportView.topAnchor.constraint(
                 equalTo: currencyStackView.bottomAnchor,
-                constant: constraintSpacing.standard
+                constant: ConstraintSpacing.standard
             ),
             customerSupportView.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor)
         ])
@@ -219,22 +188,22 @@ private extension BotViewController {
     
     func setDealHistoryTableViewConstraints() {
         NSLayoutConstraint.activate([
-            dealHistoryTableView.heightAnchor.constraint(greaterThanOrEqualToConstant: 200),
+            dealHistoryTableView.heightAnchor.constraint(greaterThanOrEqualToConstant: DefaultSizes.minimalTabelViewSize),
             dealHistoryTableView.bottomAnchor.constraint(
                 equalTo: runButton.topAnchor,
-                constant: -constraintSpacing.standard
+                constant: -ConstraintSpacing.standard
             ),
             dealHistoryTableView.topAnchor.constraint(
                 lessThanOrEqualTo: customerSupportView.bottomAnchor,
-                constant: constraintSpacing.extraLarge
+                constant: ConstraintSpacing.extraLarge
             ),
             dealHistoryTableView.leadingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.leadingAnchor,
-                constant: constraintSpacing.standard
+                constant: ConstraintSpacing.standard
             ),
             dealHistoryTableView.trailingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.trailingAnchor,
-                constant: -constraintSpacing.standard
+                constant: -ConstraintSpacing.standard
             )
         ])
     }
@@ -302,7 +271,13 @@ extension BotViewController: UITableViewDataSource {
 
 // MARK: - Constants
 private extension BotViewController {
-    struct defaultTexts {
+    struct DefaultSizes {
+        static let minimalTabelViewSize = CGFloat(200)
+        static let initialLabelFontSize = CGFloat(50)
+        static let titleLabelFontSize = CGFloat(25)
+    }
+    
+    struct DefaultTexts {
         static let runButtonText = "Run Bot"
         static let initialInfoLabel = "No data"
         static let initialCurrencyValue = "0.00"
