@@ -1,29 +1,26 @@
 //
-//  CurrencyCnversionVeiewController.swift
+//  FavoriteCurrenciesViewController.swift
 //  homework4
 //
-//  Created by Максим  on 29.03.2026.
+//  Created by Максим  on 06.02.2026.
 //
 
 import Foundation
 import UIKit
 
-protocol CurrencyConversionDelegate: AnyObject {
+protocol FavoriteCurrenciesDelegate: AnyObject {
     func currencyConversionUpdated(allCurrencies: [RandomlyGeneratedCurrency], chosenCurrencies: [RandomlyGeneratedCurrency])
     func currencyChosen(chosenCurrencies: [RandomlyGeneratedCurrency])
+    func showAllCurrencies(allCurrencies: [RandomlyGeneratedCurrency])
 }
 
-final class CurrencyConversionViewController: UIViewController {
-    private let showAllButton = UIButton()
-    private let showFiatButton = UIButton()
-    private let showCryptoButton = UIButton()
-    private let filterButtonsStackView = UIStackView()
+final class FavoriteCurrenciesViewController: UIViewController {
     private let currencyStackView = UIStackView()
     private let timerLabel = UILabel()
     private let amountToConvertTextField = UITextField()
     private let conversionResultLabel = UILabel()
     private let conversionStackView = UIStackView()
-    private let favoriteFilterSwitch = FavoriteFilterSwitch()
+    private let showAllButton = UIButton()
     
     private var currencyDataGenerator = CurrencyDataProvider(
         aomuntOfCurrencies: DefaultValues.amountOfCurrencuesToGenerate,
@@ -60,16 +57,10 @@ final class CurrencyConversionViewController: UIViewController {
     
     var currenciesToDisplay: [RandomlyGeneratedCurrency]?
     var chosenCurrencies: [RandomlyGeneratedCurrency]?
-    weak var currencyConversionDelegate: CurrencyConversionDelegate?
+    weak var favoriteCurrenciesDelegate: FavoriteCurrenciesDelegate?
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        if let chosenCurrencies, let currencies = currenciesToDisplay {
-            currencyDataGenerator = CurrencyDataProvider(
-                currencies: currencies,
-                chosenCurrencies: chosenCurrencies
-            )
-        }
         setupCurrencyDataGenerator()
         initViews()
         initTimer()
@@ -84,7 +75,7 @@ final class CurrencyConversionViewController: UIViewController {
 }
 
 // MARK: - Private Methods
-private extension CurrencyConversionViewController {
+private extension FavoriteCurrenciesViewController {
     func updateViewFromModel() {
         let currencyToReselectIndex = selectedCurrencyToChooseIndex
         for index in currencyDataGenerator.chosenCurrencies.indices {
@@ -95,16 +86,10 @@ private extension CurrencyConversionViewController {
         if let currencyToReselectIndex {
             currenciesToChoose[currencyToReselectIndex].isChosen = true
         }
-        currencyConversionDelegate?.currencyConversionUpdated(
+        favoriteCurrenciesDelegate?.currencyConversionUpdated(
             allCurrencies: currencyDataGenerator.allCurrencies,
             chosenCurrencies: currencyDataGenerator.chosenCurrencies
         )
-    }
-    
-    func updateFilterButtonsState(lastTappedButton: UIButton) {
-        showAllButton.isSelected = lastTappedButton == showAllButton
-        showFiatButton.isSelected = lastTappedButton == showFiatButton
-        showCryptoButton.isSelected = lastTappedButton == showCryptoButton
     }
     
     func updateConversionResult() {
@@ -136,18 +121,12 @@ private extension CurrencyConversionViewController {
             currencyStackView.addArrangedSubview(currencyView)
         }
         view.addSubview(currencyStackView)
-        
+        view.addSubview(showAllButton)
+        view.addSubview(timerLabel)
+
         currencyCollectionView.register(CurrencyCell.self, forCellWithReuseIdentifier: CurrencyCell.identifier)
         currencyCollectionView.register(EmptyCell.self, forCellWithReuseIdentifier: EmptyCell.identifier)
         view.addSubview(currencyCollectionView)
-        
-        view.addSubview(favoriteFilterSwitch)
-        
-        filterButtonsStackView.addArrangedSubview(showAllButton)
-        filterButtonsStackView.addArrangedSubview(showFiatButton)
-        filterButtonsStackView.addArrangedSubview(showCryptoButton)
-        view.addSubview(filterButtonsStackView)
-        view.addSubview(timerLabel)
         
         conversionStackView.addArrangedSubview(amountToConvertTextField)
         conversionStackView.addArrangedSubview(conversionResultLabel)
@@ -159,15 +138,11 @@ private extension CurrencyConversionViewController {
         setupCurrencyStackView()
         setupCurrenciesToChoose()
         setupCurrencyCollectionView()
-        setupFilterButtonsStackView()
-        setupShowAllButton()
-        setupShowFiatButton()
-        setupShowCryptoButton()
         setupTimerLabel()
         setupConversionStackView()
         setupAmountToConvertTextField()
         setupConversionResultLabel()
-        setupFavoriteFilterSwitch()
+        setupAllCurrenciesButton()
     }
     
     func setupCurrenciesToChoose() {
@@ -180,6 +155,18 @@ private extension CurrencyConversionViewController {
                 )
             )
         }
+    }
+    
+    func setupAllCurrenciesButton() {
+        showAllButton.setTitle(Texts.showAllButtonText, for: .normal)
+        showAllButton.layer.borderWidth = BorderWidth.thin
+        showAllButton.layer.cornerRadius = CornerRadius.small
+        showAllButton.backgroundColor = .white
+        showAllButton.setTitleColor(.systemBlue, for: .selected)
+        showAllButton.setTitleColor(.black, for: .normal)
+        showAllButton.isSelected = true
+        showAllButton.addTarget(self, action: #selector(handleShowAllButtonTap), for: .touchUpInside)
+
     }
     
     func setupCurrencyCollectionView() {
@@ -195,44 +182,14 @@ private extension CurrencyConversionViewController {
     }
     
     func setupCurrencyDataGenerator() {
+        if let chosenCurrencies, let currencies = currenciesToDisplay {
+            currencyDataGenerator = CurrencyDataProvider(
+                currencies: currencies,
+                chosenCurrencies: chosenCurrencies
+            )
+        }
         currencyDataGenerator.delegate = self
-    }
-    
-    func setupFilterButtonsStackView() {
-        filterButtonsStackView.axis = .horizontal
-        filterButtonsStackView.spacing = StackViewSpacing.extraSmall
-        filterButtonsStackView.distribution = .fillEqually
-    }
-    
-    func setupShowAllButton() {
-        showAllButton.setTitle(Texts.showAllButtonText, for: .normal)
-        showAllButton.layer.borderWidth = BorderWidth.thin
-        showAllButton.layer.cornerRadius = CornerRadius.small
-        showAllButton.backgroundColor = .white
-        showAllButton.setTitleColor(.systemBlue, for: .selected)
-        showAllButton.setTitleColor(.black, for: .normal)
-        showAllButton.isSelected = true
-        showAllButton.addTarget(self, action: #selector(handleFilterButtonTap), for: .touchUpInside)
-    }
-    
-    func setupShowFiatButton() {
-        showFiatButton.setTitle(Texts.showFiatButtonText, for: .normal)
-        showFiatButton.layer.borderWidth = BorderWidth.thin
-        showFiatButton.layer.cornerRadius = CornerRadius.small
-        showFiatButton.backgroundColor = .white
-        showFiatButton.setTitleColor(.systemBlue, for: .selected)
-        showFiatButton.setTitleColor(.black, for: .normal)
-        showFiatButton.addTarget(self, action: #selector(handleFilterButtonTap), for: .touchUpInside)
-    }
-    
-    func setupShowCryptoButton() {
-        showCryptoButton.setTitle(Texts.showCryptoButtonText, for: .normal)
-        showCryptoButton.layer.borderWidth = BorderWidth.thin
-        showCryptoButton.layer.cornerRadius = CornerRadius.small
-        showCryptoButton.backgroundColor = .white
-        showCryptoButton.setTitleColor(.systemBlue, for: .selected)
-        showCryptoButton.setTitleColor(.black, for: .normal)
-        showCryptoButton.addTarget(self, action: #selector(handleFilterButtonTap), for: .touchUpInside)
+        currencyDataGenerator.switchFilterByFavorite(isFilterOn: true)
     }
     
     func setupTimerLabel() {
@@ -259,17 +216,12 @@ private extension CurrencyConversionViewController {
         conversionResultLabel.font = AppFonts.body
     }
     
-    func setupFavoriteFilterSwitch() {
-        favoriteFilterSwitch.delegate = self
-    }
-    
     func setConstraints() {
         setCurrencyStakViewConstraints()
         setCurrencyCollectionViewConstraints()
-        setFilterButtonsStackViewConstraints()
         setTimerLabelConstraints()
         setConversionStackViewConstraints()
-        setFavoriteFilterSwitchConstraints()
+        setShowAllButtonConstraints()
     }
     
     func setCurrencyStakViewConstraints() {
@@ -289,25 +241,7 @@ private extension CurrencyConversionViewController {
             )
         ])
     }
-    
-    func setFilterButtonsStackViewConstraints() {
-        filterButtonsStackView.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            filterButtonsStackView.leadingAnchor.constraint(
-                equalTo: view.safeAreaLayoutGuide.leadingAnchor,
-                constant: ConstraintSpacing.standard
-            ),
-            filterButtonsStackView.trailingAnchor.constraint(
-                equalTo: view.safeAreaLayoutGuide.trailingAnchor,
-                constant: -ConstraintSpacing.standard
-            ),
-            filterButtonsStackView.topAnchor.constraint(
-                equalTo: favoriteFilterSwitch.bottomAnchor,
-                constant: ConstraintSpacing.standard
-            )
-        ])
-    }
-    
+
     func setCurrencyCollectionViewConstraints() {
         currencyCollectionView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -324,7 +258,7 @@ private extension CurrencyConversionViewController {
                 constant: ConstraintSpacing.standard
             ),
             currencyCollectionView.topAnchor.constraint(
-                equalTo: filterButtonsStackView.bottomAnchor,
+                equalTo: conversionStackView.bottomAnchor,
                 constant: ConstraintSpacing.standard
             )
         ])
@@ -342,7 +276,7 @@ private extension CurrencyConversionViewController {
                 constant: -ConstraintSpacing.standard
             ),
             timerLabel.topAnchor.constraint(
-                equalTo: currencyStackView.bottomAnchor,
+                equalTo: showAllButton.bottomAnchor,
                 constant: ConstraintSpacing.standard
             )
         ])
@@ -366,26 +300,26 @@ private extension CurrencyConversionViewController {
         ])
     }
     
-    func setFavoriteFilterSwitchConstraints() {
-        favoriteFilterSwitch.translatesAutoresizingMaskIntoConstraints = false
+    func setShowAllButtonConstraints() {
+        showAllButton.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            favoriteFilterSwitch.leadingAnchor.constraint(
+            showAllButton.leadingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.leadingAnchor,
-                constant: ConstraintSpacing.standard
+                constant: ConstraintSpacing.extraLarge
             ),
-            favoriteFilterSwitch.trailingAnchor.constraint(
+            showAllButton.trailingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.trailingAnchor,
-                constant: -ConstraintSpacing.standard
+                constant: -ConstraintSpacing.extraLarge
             ),
-            favoriteFilterSwitch.topAnchor.constraint(
-                equalTo: conversionStackView.bottomAnchor,
+            showAllButton.topAnchor.constraint(
+                equalTo: currencyStackView.bottomAnchor,
                 constant: ConstraintSpacing.standard
-            )
+            ),
+            showAllButton.heightAnchor.constraint(lessThanOrEqualToConstant: DefaultValues.maximumButtonHeight)
         ])
     }
     
     func initTimer() {
-        
         timer = Timer.scheduledTimer(
             timeInterval: DefaultValues.timerTimeInterval,
             target: self,
@@ -402,8 +336,8 @@ private extension CurrencyConversionViewController {
     }
 }
 
-// MARK: - Action Handlers
-private extension CurrencyConversionViewController {
+//MARK: - Action Handlers
+private extension FavoriteCurrenciesViewController {
     @objc
     func handleTimerTick() {
         timerTimeLeft -= 0.01
@@ -426,19 +360,6 @@ private extension CurrencyConversionViewController {
     }
     
     @objc
-    func handleFilterButtonTap(_ sender: UIButton) {
-        if sender == showFiatButton {
-            currencyDataGenerator.filterCurrenciesByType(CurrencyType.fiat)
-        } else if sender == showCryptoButton {
-            currencyDataGenerator.filterCurrenciesByType(CurrencyType.crypto)
-        } else {
-            currencyDataGenerator.clearFilterByType()
-        }
-        updateFilterButtonsState(lastTappedButton: sender)
-        updateViewFromModel()
-    }
-    
-    @objc
     func handleAmountToConvertChange(_ sender: UITextField) {
         updateConversionResult()
         let conversionRate = currencyDataGenerator.convertCurrency(
@@ -447,15 +368,21 @@ private extension CurrencyConversionViewController {
         )
         conversionResult = conversionRate * (Double(sender.text ?? "0") ?? .zero)
     }
+    
+    @objc
+    func handleShowAllButtonTap() {
+        favoriteCurrenciesDelegate?.showAllCurrencies(allCurrencies: currencyDataGenerator.allCurrencies)
+        dismiss(animated: true)
+    }
 }
 
-// MARK: - CurrencyDelegatePrtocol Implementation
-extension CurrencyConversionViewController: CurrencyDelegatePrtocol {
+// MARK: - CurrencyDelegateProtocol Implementation
+extension FavoriteCurrenciesViewController: CurrencyDelegatePrtocol {
     func currencyChosen(_ currency: RandomlyGeneratedCurrency) {
         if let selectedCurrencyToChooseIndex, !currency.isChosen {
             deselectAllCurrenciesToChoose()
             currencyDataGenerator.chooseCurrency(currency: currency, chosenCurrenciesIndex: selectedCurrencyToChooseIndex)
-            currencyConversionDelegate?.currencyChosen(chosenCurrencies: currencyDataGenerator.chosenCurrencies)
+            favoriteCurrenciesDelegate?.currencyChosen(chosenCurrencies: currencyDataGenerator.chosenCurrencies)
             updateViewFromModel()
         }
     }
@@ -466,7 +393,7 @@ extension CurrencyConversionViewController: CurrencyDelegatePrtocol {
 }
 
 // MARK: - UITextFieldDelegate Implemenatanion
-extension CurrencyConversionViewController: UITextFieldDelegate {
+extension FavoriteCurrenciesViewController: UITextFieldDelegate {
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         let decimalCharacters = CharacterSet(charactersIn: String.allDecimalCharacters)
         let characterSet = CharacterSet(charactersIn: string)
@@ -474,16 +401,8 @@ extension CurrencyConversionViewController: UITextFieldDelegate {
     }
 }
 
-// MARK: - FavoriteFilterSwitchDelegate Implementation
-extension CurrencyConversionViewController: FavoriteFilterSwitchDelegate {
-    func switchFilter(isFilterOn: Bool) {
-        currencyDataGenerator.switchFilterByFavorite(isFilterOn: isFilterOn)
-        updateViewFromModel()
-    }
-}
-
 // MARK: - Constants
-private extension CurrencyConversionViewController {
+private extension FavoriteCurrenciesViewController {
     struct DefaultValues {
         static let amountOfCurrencuesToGenerate = Int.random(in: 100...200)
         static let amountOfCurrenciesToChoose = 2
@@ -491,14 +410,13 @@ private extension CurrencyConversionViewController {
         static let convertFromCurrencyIndex = 0
         static let convertToCurrencyIndex = 1
         static let timerDuration: Double = 5
+        static let maximumButtonHeight = CGFloat(30)
         // Timer ticks every one hundredth of a second
         static let timerTimeInterval = 0.01
     }
     
     struct Texts {
         static let showAllButtonText = "Show all"
-        static let showFiatButtonText = "Show fiat"
-        static let showCryptoButtonText = "Show crypto"
     }
 }
 

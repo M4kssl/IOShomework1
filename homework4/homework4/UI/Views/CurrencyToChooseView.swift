@@ -80,6 +80,6 @@ private extension CurrencyToChooseView {
 // MARK: - Constants
 private extension CurrencyToChooseView {
     struct defaultTexts {
-        static let emptyLabel = "Choose below"
+        static let emptyLabel = "Tap to choose"
     }
 }

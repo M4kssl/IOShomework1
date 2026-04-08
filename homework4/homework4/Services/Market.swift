@@ -7,16 +7,12 @@
 
 import Foundation
 
-struct Currency: Equatable {
-    let name: CurrencyName
-    let quantity: Double
-    let value: Double
-}
-
 protocol MarketProtocol {
-    var currencies: [Currency] { get }
+    var currencies: [UUID : RandomlyGeneratedCurrency] { get }
     func updateCurrenciesValues()
     func processRequestAndFormAResponse(_ request: RequestForMarket) -> MarketResponse
+    func getAllCurrencies() -> [RandomlyGeneratedCurrency]
+    func updateCurrencies(with currencies: [RandomlyGeneratedCurrency])
 }
 
 struct MarketResponse {
@@ -26,18 +22,38 @@ struct MarketResponse {
 }
 
 final class Market: MarketProtocol {
-    private(set) var currencies: [Currency] = []
+    private(set) var currencies = [UUID : RandomlyGeneratedCurrency]()
     
-    init() {
-        for currency in Currency.CurrencyName.allCases {
-            currencies.append(Currency(name: currency, quantity: 80, value: Double.random(in: 1...100)))
+    init(amountOfCurrencies: Int) {
+        let currencyNames = RandomlyGeneratedCurrency.generateRandomNames(quantityOfNames: amountOfCurrencies)
+        for name in currencyNames {
+            let currency = RandomlyGeneratedCurrency(
+                id: UUID(),
+                name: name,
+                value: Double.random(in: DefaultValues.minimumCurrencyValue...DefaultValues.maximumCurrencyValue),
+                quantity: DefaultValues.initialCurrencyQuantity,
+                type: CurrencyType.allCases.randomElement() ?? .crypto,
+                isChosen: false,
+                isFavorited: false
+            )
+            currencies[currency.id] = currency
         }
     }
     
     func updateCurrenciesValues() {
-        for index in currencies.indices {
-            let newValue = Double.random(in: 1...100)
-            currencies[index] = Currency(name: currencies[index].name,  quantity: currencies[index].quantity, value: newValue)
+        for key in currencies.keys {
+            if let currency = currencies[key] {
+                let newValue = Double.random(in: DefaultValues.minimumCurrencyValue...DefaultValues.maximumCurrencyValue)
+                currencies[key] = RandomlyGeneratedCurrency(
+                    id: currency.id,
+                    name: currency.name,
+                    value: newValue,
+                    quantity: currency.quantity,
+                    type: currency.type,
+                    isChosen: currency.isChosen,
+                    isFavorited: currency.isFavorited
+                )
+            }
         }
     }
     
@@ -46,32 +62,58 @@ final class Market: MarketProtocol {
         case .ignore:
             return MarketResponse(request: request, status: .success, messege: nil)
         case .purchase:
-            if let index = currencies.firstIndex(where: { $0.name == request.currency.name }) {
-                if currencies[index].quantity < request.quantity {
-                    return MarketResponse(request: request, status: .failure, messege: "Not enough quantity avalible. Request for \(request.quantity), avalible \(currencies[index].quantity)")
+            let key = request.currency.id
+            if let currency = currencies[key] {
+                if currency.quantity < request.quantity {
+                    return MarketResponse(request: request, status: .failure, messege: "Not enough quantity avalible. Request for \(request.quantity), avalible \(currency.quantity)")
                 }
-                let newQuantity = currencies[index].quantity - request.quantity
-                currencies[index] = Currency(name: currencies[index].name,  quantity: newQuantity, value: currencies[index].value)
+                let newQuantity = currency.quantity - request.quantity
+                currencies[key] = RandomlyGeneratedCurrency(
+                    id: currency.id,
+                    name: currency.name,
+                    value: currency.value,
+                    quantity: newQuantity,
+                    type: currency.type,
+                    isChosen: currency.isChosen,
+                    isFavorited: currency.isFavorited
+                )
                 return MarketResponse(request: request, status: .success, messege: nil)
             }
         case .sell:
-            if let index = currencies.firstIndex(where: { $0.name == request.currency.name }) {
-                let newQuantity = currencies[index].quantity + request.quantity
-                currencies[index] = Currency(name: currencies[index].name,  quantity: newQuantity, value: currencies[index].value)
+            let key = request.currency.id
+            if let currency = currencies[key] {
+                let newQuantity = currency.quantity + request.quantity
+                currencies[key] = RandomlyGeneratedCurrency(
+                    id: currency.id,
+                    name: currency.name,
+                    value: currency.value,
+                    quantity: newQuantity,
+                    type: currency.type,
+                    isChosen: currency.isChosen,
+                    isFavorited: currency.isFavorited
+                )
                 return MarketResponse(request: request, status: .success, messege: nil)
             }
         }
         return MarketResponse(request: request, status: .failure, messege: "Something went wrong")
     }
+    
+    func getAllCurrencies() -> [RandomlyGeneratedCurrency] {
+        return Array(currencies.values)
+    }
+    
+    func updateCurrencies(with currencies: [RandomlyGeneratedCurrency]) {
+        for currency in currencies {
+            self.currencies[currency.id] = currency
+        }
+    }
 }
 
-// MARK: - Currency's nested types
-extension Currency {
-    enum CurrencyName: String, CaseIterable {
-        case usd
-        case eur
-        case gbp
-        case jpy
+private extension Market {
+    struct DefaultValues {
+        static let minimumCurrencyValue: Double = 10
+        static let maximumCurrencyValue: Double = 100
+        static let initialCurrencyQuantity: Double = 80
     }
 }
 
