@@ -73,7 +73,7 @@ private extension CurrencyToChooseView {
             currencyLabel.bottomAnchor.constraint(equalTo: self.bottomAnchor),
             currencyLabel.leadingAnchor.constraint(equalTo: self.leadingAnchor),
             currencyLabel.trailingAnchor.constraint(equalTo: self.trailingAnchor)
-          ])
+        ])
     }
 }
 

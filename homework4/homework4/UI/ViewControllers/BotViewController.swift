@@ -16,6 +16,7 @@ final class BotViewController: UIViewController {
     private lazy var botHistoryHandler = BotHistoryHandler()
     
     private let runButton = UIButton()
+    private let openChartButton = UIButton()
     private let currencyStackView = UIStackView()
     private let phoneImage = UIImage()
     private let superviewForTitleLabel = UIView()
@@ -55,9 +56,17 @@ private extension BotViewController {
         addCustomerSupportView()
         addCurrenciesToChooseStackView()
         addCurrenciesToChoose()
+        addOpenChartButton()
    }
     
     func setupUI() {
+        let swipeRecognizer = UISwipeGestureRecognizer(
+                target: self,
+                action: #selector(handleRootViewSvipe)
+        )
+        swipeRecognizer.direction = .up
+        view.addGestureRecognizer(swipeRecognizer)
+        view.isUserInteractionEnabled = true
         setupInitialLabel()
         setupRunButton()
         setupDealHistoryTableView()
@@ -69,6 +78,16 @@ private extension BotViewController {
         setupResetBarButton()
         setupChooseRandomCurrencyBarButton()
         setupNavigationItem()
+        setupOpenChartButton()
+    }
+    
+    func setupOpenChartButton() {
+        openChartButton.setImage(UIImage(systemName: "chart.xyaxis.line"), for: .normal)
+        openChartButton.setTitle(DefaultTexts.openChartButton, for: .normal)
+        openChartButton.setTitleColor(.systemBlue, for: .normal)
+        openChartButton.layer.backgroundColor = UIColor.white.cgColor
+        openChartButton.layer.cornerRadius = CornerRadius.small
+        openChartButton.addTarget(self, action: #selector(handleOpenChartButtonTap), for: .touchUpInside)
     }
     
     func setupInitialLabel() {
@@ -119,6 +138,7 @@ private extension BotViewController {
         
         var index = 0
         for currency in market.currencies.values {
+            currencyLabels[index].font = AppFonts.footnote
             currencyLabels[index].text = textForCurrencylabel(currency: currency)
             index += 1
         }
@@ -185,6 +205,10 @@ private extension BotViewController {
         view.addSubview(currencyStackView)
     }
     
+    func addOpenChartButton() {
+        view.addSubview(openChartButton)
+    }
+    
     func addCustomerSupportView() {
         customerSupportView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(customerSupportView)
@@ -198,7 +222,7 @@ private extension BotViewController {
         view.addSubview(dealHistoryTableView)
     }
     
-    // MARK: - constraints
+    // MARK: - Constraints
     func setConstraints() {
         setRunButtonConstraints()
         setCurrencyStackViewConstraints()
@@ -208,6 +232,7 @@ private extension BotViewController {
         setCustomerSupportViewConstraints()
         setDealHistoryTableViewConstraints()
         setCurrenciesToChooseStackViewConstraints()
+        setOpenChartButtonConstraints()
     }
     
     func setInitialLabelConstraints() {
@@ -217,6 +242,18 @@ private extension BotViewController {
             initialInfoLabel.bottomAnchor.constraint(equalTo: dealHistoryTableView.bottomAnchor),
             initialInfoLabel.leadingAnchor.constraint(equalTo: dealHistoryTableView.leadingAnchor),
             initialInfoLabel.trailingAnchor.constraint(equalTo: dealHistoryTableView.trailingAnchor),
+        ])
+    }
+    
+    func setOpenChartButtonConstraints() {
+        openChartButton.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            openChartButton.topAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.topAnchor,
+                constant: ConstraintSpacing.small
+            ),
+            openChartButton.heightAnchor.constraint(lessThanOrEqualToConstant: DefaultSizes.maximumOpenChartButtonHeight),
+            openChartButton.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor)
         ])
     }
     
@@ -265,7 +302,7 @@ private extension BotViewController {
         superviewForTitleLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             superviewForTitleLabel.topAnchor.constraint(
-                equalTo: view.safeAreaLayoutGuide.topAnchor,
+                equalTo: openChartButton.bottomAnchor,
                 constant: ConstraintSpacing.standard
             ),
             superviewForTitleLabel.heightAnchor.constraint(lessThanOrEqualToConstant: DefaultSizes.maximumTitleSuperviewHeight),
@@ -355,6 +392,13 @@ private extension BotViewController {
     }
     
     @objc
+    func handleRootViewSvipe(_ gesture: UISwipeGestureRecognizer) {
+        if gesture.direction == .up , gesture.state == .ended {
+            routeToChart()
+        }
+    }
+    
+    @objc
     func runButtonTapped() {
         market.updateCurrenciesValues()
         for currency in market.currencies.values {
@@ -389,6 +433,11 @@ private extension BotViewController {
         updateViewFromModel()
     }
     
+    @objc
+    func handleOpenChartButtonTap() {
+        routeToChart()
+    }
+    
     func centeredAttributedString(_ string: String, fontSize: CGFloat) -> NSAttributedString {
         var font = UIFont.preferredFont(forTextStyle: .headline).withSize(fontSize)
         font = UIFontMetrics(forTextStyle: .headline).scaledFont(for: font)
@@ -421,6 +470,8 @@ private extension BotViewController {
     }
 }
 
+
+// MARK: UITableViewDataSource Implementation
 extension BotViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return traderBot.getDealHistory().count
@@ -430,31 +481,6 @@ extension BotViewController: UITableViewDataSource {
         let cell = tableView.dequeueReusableCell(withIdentifier: DealCell.identifier) as? DealCell
         cell?.displayedDeal = traderBot.getDealHistory()[indexPath.row]
         return cell ?? UITableViewCell()
-    }
-}
-
-// MARK: - Constants
-private extension BotViewController {
-    struct DefaultValues {
-        static let currenciesToGenerate = 5
-        static let amountOfCurrenciesToChoose = 2
-    }
-    
-    struct DefaultSizes {
-        static let minimumTabelViewSize = CGFloat(200)
-        static let initialLabelFontSize = CGFloat(50)
-        static let titleLabelFontSize = CGFloat(25)
-        static let maximumRunButtonHeight = CGFloat(30)
-        static let maximumTitleSuperviewHeight = CGFloat(40)
-    }
-    
-    struct DefaultTexts {
-        static let runButtonText = "Run Bot"
-        static let initialInfoLabel = "No data"
-        static let resetBarButton = "Reset"
-        static let initialCurrencyValue = "0.00"
-        static let chooseRandom = "Randomize"
-        static let mainTitle = "Currencies"
     }
 }
 
@@ -496,5 +522,36 @@ private extension BotViewController {
         conversionViewController.currenciesToDisplay = market.getAllCurrencies()
         conversionViewController.favoriteCurrenciesDelegate = self
         present(conversionViewController, animated: true)
+    }
+    func routeToChart() {
+        let chartViewController = CurrencyChartViewController()
+        present(chartViewController, animated: true)
+    }
+}
+
+// MARK: - Constants
+private extension BotViewController {
+    struct DefaultValues {
+        static let currenciesToGenerate = 5
+        static let amountOfCurrenciesToChoose = 2
+    }
+    
+    struct DefaultSizes {
+        static let minimumTabelViewSize = CGFloat(200)
+        static let initialLabelFontSize = CGFloat(50)
+        static let titleLabelFontSize = CGFloat(25)
+        static let maximumRunButtonHeight = CGFloat(30)
+        static let maximumOpenChartButtonHeight = CGFloat(30)
+        static let maximumTitleSuperviewHeight = CGFloat(40)
+    }
+    
+    struct DefaultTexts {
+        static let runButtonText = "Run Bot"
+        static let initialInfoLabel = "No data"
+        static let resetBarButton = "Reset"
+        static let initialCurrencyValue = "0.00"
+        static let openChartButton = "Chart"
+        static let chooseRandom = "Randomize"
+        static let mainTitle = "Currencies"
     }
 }
