@@ -27,6 +27,7 @@ private extension SceneDelegate {
         
         botViewController.tabBarItem = UITabBarItem(title: "Bot", image: UIImage(systemName: "brain"), tag: 0)
         botViewController.title = "Bot"
+       
         let botNavigationController = UINavigationController(rootViewController: botViewController)
         tabBarController.viewControllers = [botNavigationController]
         return tabBarController
