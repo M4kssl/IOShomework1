@@ -8,18 +8,28 @@
 import UIKit
 
 final class BotViewController: UIViewController {
-    private lazy var traderBot = Bot(historyhandler: botHistoryHandler)
+    private lazy var traderBot = Bot(
+        currencies: market.getAllCurrencies(),
+        historyHandler: botHistoryHandler,
+        amountOfChosenCurrencies: DefaultValues.amountOfCurrenciesToChoose
+    )
     private lazy var botHistoryHandler = BotHistoryHandler()
-    private var market = Market()
+    
     private let runButton = UIButton()
-    private var currencyLabels = [UILabel]()
     private let currencyStackView = UIStackView()
     private let phoneImage = UIImage()
-    private let superviewFortTitleLabel = UIView()
+    private let superviewForTitleLabel = UIView()
     private let titleLabel = UILabel()
     private let customerSupportView = SupportInformationView()
     private let initialInfoLabel = UILabel()
     private let dealHistoryTableView = UITableView()
+    private let currencyToChooseStackView = UIStackView()
+    private let resetBarButton = UIBarButtonItem()
+    private let chooeseRandomCurrencyBarButton = UIBarButtonItem()
+    
+    private var currencyLabels = [UILabel]()
+    private var market = Market(amountOfCurrencies: DefaultValues.currenciesToGenerate)
+    private var currenciesToChoose = [CurrencyToChooseView]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -31,46 +41,144 @@ final class BotViewController: UIViewController {
 private extension BotViewController {
     func initViews() {
         view.backgroundColor = .systemYellow
+        addSubviews()
+        setupUI()
+        setConstraints()
+    }
+    
+    func addSubviews() {
         addInitialLabel()
         addRunButton()
         addDealHistoryTableView()
         addCurrencyInfoViews()
         addViewWithSubview()
         addCustomerSupportView()
-        setConstraints()
+        addCurrenciesToChooseStackView()
+        addCurrenciesToChoose()
+   }
+    
+    func setupUI() {
+        setupInitialLabel()
+        setupRunButton()
+        setupDealHistoryTableView()
+        setupCurrencyInfoViews()
+        setupSuperviewForTitleLabel()
+        setupTitleLabel()
+        setupCurrenciesToChooseStackView()
+        setupCurrenciesToChoose()
+        setupResetBarButton()
+        setupChooseRandomCurrencyBarButton()
+        setupNavigationItem()
     }
     
-    func addInitialLabel() {
+    func setupInitialLabel() {
         initialInfoLabel.attributedText = centeredAttributedString(
             DefaultTexts.initialInfoLabel,
             fontSize: DefaultSizes.initialLabelFontSize)
         initialInfoLabel.sizeToFit()
-        initialInfoLabel.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(initialInfoLabel)
     }
     
-    func addViewWithSubview() {
-        superviewFortTitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        superviewFortTitleLabel.backgroundColor = .systemRed
+    func setupNavigationItem() {
+        navigationItem.leftBarButtonItem = resetBarButton
+        navigationItem.rightBarButtonItem = chooeseRandomCurrencyBarButton
+    }
+    
+    func setupResetBarButton() {
+        resetBarButton.title = DefaultTexts.resetBarButton
+        resetBarButton.target = self
+        resetBarButton.image = UIImage(systemName: "clear")
+        resetBarButton.action = #selector(handleResetButtonTap)
+    }
+    
+    func setupChooseRandomCurrencyBarButton() {
+        chooeseRandomCurrencyBarButton.title = DefaultTexts.chooseRandom
+        chooeseRandomCurrencyBarButton.target = self
+        chooeseRandomCurrencyBarButton.image = UIImage(systemName: "dice")
+        chooeseRandomCurrencyBarButton.action = #selector(handleChooseRandomCurrencyTap)
+    }
+    
+    func setupRunButton() {
+        runButton.setTitle(DefaultTexts.runButtonText, for: .normal)
+        runButton.backgroundColor = .systemBlue
+        runButton.titleLabel?.textColor = .white
+        runButton.layer.cornerRadius = CornerRadius.standard
+        runButton.addTarget(self, action: #selector(runButtonTapped), for: .touchUpInside)
+    }
+    
+    func setupDealHistoryTableView() {
+        dealHistoryTableView.register(DealCell.self, forCellReuseIdentifier: DealCell.identifier)
+        dealHistoryTableView.dataSource = self
+        dealHistoryTableView.alpha = .zero
+        dealHistoryTableView.layer.borderWidth = BorderWidth.thin
+    }
+    
+    func setupCurrencyInfoViews() {
+        currencyStackView.spacing = StackViewSpacing.small
+        currencyStackView.axis = .vertical
+        currencyStackView.translatesAutoresizingMaskIntoConstraints = false
+        
+        var index = 0
+        for currency in market.currencies.values {
+            currencyLabels[index].text = textForCurrencylabel(currency: currency)
+            index += 1
+        }
+    }
+    
+    func setupSuperviewForTitleLabel() {
+        superviewForTitleLabel.backgroundColor = .systemRed
+    }
+    
+    func setupTitleLabel(){
         titleLabel.attributedText = centeredAttributedString(
             DefaultTexts.mainTitle,
             fontSize: DefaultSizes.titleLabelFontSize
         )
         titleLabel.sizeToFit()
         titleLabel.textAlignment = .center
-        superviewFortTitleLabel.addSubview(titleLabel)
-        view.addSubview(superviewFortTitleLabel)
+    }
+    
+    func setupCurrenciesToChooseStackView() {
+        currencyToChooseStackView.axis = .horizontal
+        currencyToChooseStackView.spacing = StackViewSpacing.small
+        currencyToChooseStackView.distribution = .fillEqually
+    }
+    
+    func setupCurrenciesToChoose() {
+        for index in currenciesToChoose.indices {
+            currenciesToChoose[index].isUserInteractionEnabled = true
+            currenciesToChoose[index].addGestureRecognizer(
+                UITapGestureRecognizer(
+                    target: self,
+                    action: #selector(handleChosenCurrencyTap)
+                )
+            )
+        }
+    }
+    
+    func addCurrenciesToChoose() {
+        for _ in .zero..<DefaultValues.amountOfCurrenciesToChoose {
+            let currencyView = CurrencyToChooseView()
+            currenciesToChoose.append(currencyView)
+            currencyToChooseStackView.addArrangedSubview(currencyView)
+        }
+    }
+    
+    func addCurrenciesToChooseStackView() {
+        view.addSubview(currencyToChooseStackView)
+    }
+    
+    func addInitialLabel() {
+        view.addSubview(initialInfoLabel)
+    }
+    
+    func addViewWithSubview() {
+        superviewForTitleLabel.addSubview(titleLabel)
+        view.addSubview(superviewForTitleLabel)
     }
     
     func addCurrencyInfoViews() {
-        currencyStackView.spacing = StackViewSpacing.small
-        currencyStackView.axis = .vertical
-        currencyStackView.translatesAutoresizingMaskIntoConstraints = false
-        
-        for currencyName in Currency.CurrencyName.allCases {
+        for _ in .zero..<market.currencies.count {
             let currencyLabel = UILabel()
-            currencyLabel.text = "\(currencyName.rawValue.uppercased()) - \(DefaultTexts.initialCurrencyValue)"
-            currencyLabel.translatesAutoresizingMaskIntoConstraints = false
             currencyLabels.append(currencyLabel)
             currencyStackView.addArrangedSubview(currencyLabel)
         }
@@ -84,35 +192,26 @@ private extension BotViewController {
     
     func addRunButton() {
         view.addSubview(runButton)
-        runButton.setTitle(DefaultTexts.runButtonText, for: .normal)
-        runButton.backgroundColor = .systemBlue
-        runButton.titleLabel?.textColor = .white
-        runButton.layer.cornerRadius = CornerRadius.standard
-        runButton.addTarget(self, action: #selector(runButtonTapped), for: .touchUpInside)
-        runButton.translatesAutoresizingMaskIntoConstraints = false
     }
     
     func addDealHistoryTableView() {
         view.addSubview(dealHistoryTableView)
-        dealHistoryTableView.translatesAutoresizingMaskIntoConstraints = false
-        dealHistoryTableView.register(DealCell.self, forCellReuseIdentifier: DealCell.identifier)
-        dealHistoryTableView.dataSource = self
-        dealHistoryTableView.alpha = .zero
-        dealHistoryTableView.layer.borderWidth = BorderWidth.thin
     }
     
     // MARK: - constraints
     func setConstraints() {
         setRunButtonConstraints()
         setCurrencyStackViewConstraints()
-        settitleLabelConstraints()
-        setViewForLabelConstraints()
+        setTitleLabelConstraints()
+        setSuperviewForTitleLabelConstraints()
         setInitialLabelConstraints()
         setCustomerSupportViewConstraints()
         setDealHistoryTableViewConstraints()
+        setCurrenciesToChooseStackViewConstraints()
     }
     
     func setInitialLabelConstraints() {
+        initialInfoLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             initialInfoLabel.topAnchor.constraint(equalTo: dealHistoryTableView.topAnchor),
             initialInfoLabel.bottomAnchor.constraint(equalTo: dealHistoryTableView.bottomAnchor),
@@ -122,16 +221,19 @@ private extension BotViewController {
     }
     
     func setRunButtonConstraints() {
+        runButton.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             runButton.bottomAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.bottomAnchor,
                 constant: -ConstraintSpacing.standard
             ),
+            runButton.heightAnchor.constraint(lessThanOrEqualToConstant: DefaultSizes.maximumRunButtonHeight),
             runButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
     }
     
     func setCurrencyStackViewConstraints() {
+        currencyStackView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             currencyStackView.leadingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.leadingAnchor,
@@ -142,33 +244,37 @@ private extension BotViewController {
                 constant: -ConstraintSpacing.standard
             ),
             currencyStackView.topAnchor.constraint(
-                equalTo: superviewFortTitleLabel.bottomAnchor,
+                equalTo: currencyToChooseStackView.bottomAnchor,
                 constant: ConstraintSpacing.standard
             )
         ])
     }
     
-    func settitleLabelConstraints() {
+    func setTitleLabelConstraints() {
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: superviewFortTitleLabel.topAnchor),
-            titleLabel.bottomAnchor.constraint(equalTo: superviewFortTitleLabel.bottomAnchor),
-            titleLabel.trailingAnchor.constraint(equalTo: superviewFortTitleLabel.trailingAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: superviewFortTitleLabel.leadingAnchor),
-            titleLabel.centerXAnchor.constraint(equalTo: superviewFortTitleLabel.centerXAnchor)
+            titleLabel.topAnchor.constraint(equalTo: superviewForTitleLabel.topAnchor),
+            titleLabel.bottomAnchor.constraint(equalTo: superviewForTitleLabel.bottomAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: superviewForTitleLabel.trailingAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: superviewForTitleLabel.leadingAnchor),
+            titleLabel.centerXAnchor.constraint(equalTo: superviewForTitleLabel.centerXAnchor)
         ])
     }
     
-    func setViewForLabelConstraints() {
+    func setSuperviewForTitleLabelConstraints() {
+        superviewForTitleLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            superviewFortTitleLabel.topAnchor.constraint(
+            superviewForTitleLabel.topAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.topAnchor,
                 constant: ConstraintSpacing.standard
             ),
-            superviewFortTitleLabel.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor)
+            superviewForTitleLabel.heightAnchor.constraint(lessThanOrEqualToConstant: DefaultSizes.maximumTitleSuperviewHeight),
+            superviewForTitleLabel.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor)
         ])
     }
     
     func setCustomerSupportViewConstraints() {
+        customerSupportView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             customerSupportView.leadingAnchor.constraint(
                 greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor,
@@ -180,22 +286,22 @@ private extension BotViewController {
             ),
             customerSupportView.topAnchor.constraint(
                 equalTo: currencyStackView.bottomAnchor,
-                constant: ConstraintSpacing.standard
+                constant: ConstraintSpacing.small
             ),
             customerSupportView.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor)
         ])
     }
     
     func setDealHistoryTableViewConstraints() {
+        dealHistoryTableView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            dealHistoryTableView.heightAnchor.constraint(greaterThanOrEqualToConstant: DefaultSizes.minimalTabelViewSize),
             dealHistoryTableView.bottomAnchor.constraint(
                 equalTo: runButton.topAnchor,
                 constant: -ConstraintSpacing.standard
             ),
             dealHistoryTableView.topAnchor.constraint(
                 lessThanOrEqualTo: customerSupportView.bottomAnchor,
-                constant: ConstraintSpacing.extraLarge
+                constant: ConstraintSpacing.standard
             ),
             dealHistoryTableView.leadingAnchor.constraint(
                 equalTo: view.safeAreaLayoutGuide.leadingAnchor,
@@ -208,31 +314,78 @@ private extension BotViewController {
         ])
     }
     
-    func textForCurrencylabel(currency: Currency) -> String {
-        return "\(currency.name.rawValue.uppercased()) - \(currency.value.stringWithTwoDecimalPlaces)"
+    func setCurrenciesToChooseStackViewConstraints() {
+        currencyToChooseStackView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            currencyToChooseStackView.leadingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.leadingAnchor,
+                constant: ConstraintSpacing.standard
+            ),
+            currencyToChooseStackView.trailingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.trailingAnchor,
+                constant: -ConstraintSpacing.standard
+            ),
+            currencyToChooseStackView.topAnchor.constraint(
+                equalTo: superviewForTitleLabel.bottomAnchor,
+                constant: ConstraintSpacing.standard
+            )
+        ])
+    }
+ 
+    func textForCurrencylabel(currency: RandomlyGeneratedCurrency) -> String {
+        return "\(currency.name.uppercased()) - \(currency.value.stringWithTwoDecimalPlaces)"
     }
     
     func updateViewFromModel() {
-        for index in market.currencies.indices {
-            let currency = market.currencies[index]
+        var index = 0
+        for currency in market.currencies.values {
             currencyLabels[index].text = textForCurrencylabel(currency: currency)
+            index += 1
         }
         dealHistoryTableView.reloadData()
         
         if traderBot.decisionsMade > .zero, dealHistoryTableView.alpha == .zero {
             crossDissolveViews(form: initialInfoLabel, to: dealHistoryTableView)
+        } else if traderBot.decisionsMade == .zero, dealHistoryTableView.alpha > .zero {
+            crossDissolveViews(form: dealHistoryTableView, to: initialInfoLabel)
+        }
+        for index in traderBot.chosenCurrencies.indices {
+            currenciesToChoose[index].currencyText = traderBot.chosenCurrencies[index].stringToDisplay
         }
     }
     
     @objc
     func runButtonTapped() {
         market.updateCurrenciesValues()
-        for currency in market.currencies {
+        for currency in market.currencies.values {
             let action = traderBot.decideOnAction(for: currency)
             let request = traderBot.formARequestForMarket(toMake: action, for: currency)
             let response = market.processRequestAndFormAResponse(request)
             traderBot.processMarketResponse(response)
         }
+        updateViewFromModel()
+    }
+    
+    @objc
+    func handleChosenCurrencyTap() {
+        routeToFavoriteCurrencyConversion()
+    }
+    
+    @objc
+    func handleResetButtonTap() {
+        resetBot(chosenCurrencies: traderBot.chosenCurrencies)
+        updateViewFromModel()
+    }
+    
+    @objc
+    func handleChooseRandomCurrencyTap() {
+        let allCurrencies = market.getAllCurrencies()
+        for index in traderBot.chosenCurrencies.indices {
+            if let currency = allCurrencies.randomElement() {
+                traderBot.setCurrencyAsChosen(currency: currency, at: index)
+            }
+        }
+        resetBot(chosenCurrencies: traderBot.chosenCurrencies)
         updateViewFromModel()
     }
     
@@ -255,6 +408,17 @@ private extension BotViewController {
             completion: nil
         )
     }
+    
+    func resetBot(chosenCurrencies: [RandomlyGeneratedCurrency]) {
+        traderBot = Bot(
+            currencies: market.getAllCurrencies(),
+            historyHandler: botHistoryHandler,
+            amountOfChosenCurrencies: DefaultValues.amountOfCurrenciesToChoose
+        )
+        for index in chosenCurrencies.indices {
+            traderBot.setCurrencyAsChosen(currency: chosenCurrencies[index], at: index)
+        }
+    }
 }
 
 extension BotViewController: UITableViewDataSource {
@@ -271,16 +435,66 @@ extension BotViewController: UITableViewDataSource {
 
 // MARK: - Constants
 private extension BotViewController {
+    struct DefaultValues {
+        static let currenciesToGenerate = 5
+        static let amountOfCurrenciesToChoose = 2
+    }
+    
     struct DefaultSizes {
-        static let minimalTabelViewSize = CGFloat(200)
+        static let minimumTabelViewSize = CGFloat(200)
         static let initialLabelFontSize = CGFloat(50)
         static let titleLabelFontSize = CGFloat(25)
+        static let maximumRunButtonHeight = CGFloat(30)
+        static let maximumTitleSuperviewHeight = CGFloat(40)
     }
     
     struct DefaultTexts {
         static let runButtonText = "Run Bot"
         static let initialInfoLabel = "No data"
+        static let resetBarButton = "Reset"
         static let initialCurrencyValue = "0.00"
+        static let chooseRandom = "Randomize"
         static let mainTitle = "Currencies"
+    }
+}
+
+// MARK: - FavoriteCurrenciesDelegate And CurrencyConversionDelegate Implementation
+extension BotViewController: CurrencyConversionDelegate, FavoriteCurrenciesDelegate {
+    func currencyConversionUpdated(allCurrencies: [RandomlyGeneratedCurrency], chosenCurrencies: [RandomlyGeneratedCurrency]) {
+        market.updateCurrencies(with: allCurrencies)
+        for index in chosenCurrencies.indices {
+            traderBot.setCurrencyAsChosen(currency: chosenCurrencies[index], at: index)
+        }
+        updateViewFromModel()
+    }
+    
+    func currencyChosen(chosenCurrencies: [RandomlyGeneratedCurrency]) {
+        resetBot(chosenCurrencies: chosenCurrencies)
+    }
+    
+    func showAllCurrencies(allCurrencies: [RandomlyGeneratedCurrency]) {
+        market.updateCurrencies(with: allCurrencies)
+        updateViewFromModel()
+        routeToCurrencyConversion()
+    }
+}
+
+// MARK: - Routing
+private extension BotViewController {
+    func routeToCurrencyConversion() {
+        let conversionViewController = CurrencyConversionViewController()
+        conversionViewController.chosenCurrencies = traderBot.chosenCurrencies
+        conversionViewController.currenciesToDisplay = market.getAllCurrencies()
+        conversionViewController.currencyConversionDelegate = self
+        conversionViewController.title = "All currencies"
+        navigationController?.pushViewController(conversionViewController, animated: true)
+    }
+    
+    func routeToFavoriteCurrencyConversion() {
+        let conversionViewController = FavoriteCurrenciesViewController()
+        conversionViewController.chosenCurrencies = traderBot.chosenCurrencies
+        conversionViewController.currenciesToDisplay = market.getAllCurrencies()
+        conversionViewController.favoriteCurrenciesDelegate = self
+        present(conversionViewController, animated: true)
     }
 }

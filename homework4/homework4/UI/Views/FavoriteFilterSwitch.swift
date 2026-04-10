@@ -33,6 +33,7 @@ final class FavoriteFilterSwitch: UIView {
     }
 }
 
+// MARK: - Private Methods
 private extension FavoriteFilterSwitch {
     func addSubviews() {
         stackView.addArrangedSubview(filterLabel)
@@ -75,7 +76,11 @@ private extension FavoriteFilterSwitch {
             stackView.trailingAnchor.constraint(equalTo: self.trailingAnchor)
           ])
     }
-    
+}
+
+//MARK: - Action Handlers
+@objc
+private extension FavoriteFilterSwitch {
     @objc
     func handleFilterSwitchValueChange() {
         delegate?.switchFilter(isFilterOn: filterSwitch.isOn)

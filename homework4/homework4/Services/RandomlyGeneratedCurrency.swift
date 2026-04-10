@@ -7,10 +7,16 @@
 
 import Foundation
 
+enum CurrencyType: String, CaseIterable {
+    case fiat
+    case crypto
+}
+
 struct RandomlyGeneratedCurrency {
     let id: UUID
     let name: String
     let value: Double
+    let quantity: Double
     let type: CurrencyType
     let isChosen: Bool
     let isFavorited: Bool
@@ -36,9 +42,10 @@ extension RandomlyGeneratedCurrency {
     
     static func generatePlaceholderCurrency() -> RandomlyGeneratedCurrency {
         return RandomlyGeneratedCurrency(
-            id: UUID(),
+            id: UUID.empty,
             name: "Choose currency",
             value: 0,
+            quantity: 0,
             type: .crypto,
             isChosen: false,
             isFavorited: false
@@ -50,4 +57,8 @@ extension RandomlyGeneratedCurrency {
     var stringToDisplay: String {
         return "\(name) - \(value.stringWithTwoDecimalPlaces)"
     }
+}
+
+extension UUID {
+    static let empty = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
 }

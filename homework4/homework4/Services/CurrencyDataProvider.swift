@@ -8,11 +8,6 @@
 import Foundation
 import UIKit
 
-enum CurrencyType: String, CaseIterable {
-    case fiat
-    case crypto
-}
-
 protocol CurrencyDelegatePrtocol: AnyObject {
     func currencyChosen(_ currency: RandomlyGeneratedCurrency)
     func favoriteMarkChanged()
@@ -29,7 +24,6 @@ protocol CurrencyDataProviderProtocol {
     func clearFilterByType()
     func convertCurrency(atChosenCurrencyIndex fromIndex: Int, toChosenCurrencyIndex toIndex: Int) -> Double
     func switchFilterByFavorite(isFilterOn: Bool)
-
 }
 
 final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
@@ -53,7 +47,8 @@ final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
                 RandomlyGeneratedCurrency(
                     id: UUID(),
                     name: name,
-                    value: Double.random(in: 10...1000),
+                    value: Double.random(in: 10...100),
+                    quantity: 1,
                     type: CurrencyType.allCases.randomElement() ?? .crypto,
                     isChosen: false,
                     isFavorited: false
@@ -65,12 +60,23 @@ final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
         }
     }
     
+    init(currencies: [RandomlyGeneratedCurrency], chosenCurrencies: [RandomlyGeneratedCurrency]) {
+        for currency in currencies {
+            allCurrencies.append(currency)
+        }
+        
+        for currency in chosenCurrencies {
+            self.chosenCurrencies.append(currency)
+        }
+    }
+    
     func generateNewValues() {
         for index in allCurrencies.indices {
             let currency = RandomlyGeneratedCurrency(
                 id:  allCurrencies[index].id,
                 name: allCurrencies[index].name,
-                value: .random(in: 10...1000),
+                value: .random(in: 10...100),
+                quantity: allCurrencies[index].quantity,
                 type: allCurrencies[index].type,
                 isChosen: allCurrencies[index].isChosen,
                 isFavorited: allCurrencies[index].isFavorited
@@ -96,6 +102,7 @@ final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
                 id: currency.id,
                 name: currency.name,
                 value: currency.value,
+                quantity: currency.quantity,
                 type: currency.type,
                 isChosen: true,
                 isFavorited: currency.isFavorited
@@ -122,7 +129,7 @@ final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
     }
     
     func convertCurrency(atChosenCurrencyIndex fromIndex: Int, toChosenCurrencyIndex toIndex: Int) -> Double {
-        return chosenCurrencies[toIndex].value == 0 ? 0 : chosenCurrencies[fromIndex].value / chosenCurrencies[toIndex].value
+        return chosenCurrencies[toIndex].value == .zero ? .zero : chosenCurrencies[fromIndex].value / chosenCurrencies[toIndex].value
     }
     
     func switchFilterByFavorite(isFilterOn: Bool) {
@@ -160,26 +167,17 @@ private extension CurrencyDataProvider {
     func synchronizeCurrencies() {
         let chosenCurrenciesIndetifiers = getChosenCurrenciesIdentifiers()
         for index in allCurrencies.indices {
-            if chosenCurrenciesIndetifiers.contains(allCurrencies[index].id) {
-                allCurrencies[index] = RandomlyGeneratedCurrency(
-                    id: allCurrencies[index].id,
-                    name: allCurrencies[index].name,
-                    value: allCurrencies[index].value,
-                    type: allCurrencies[index].type,
-                    isChosen: true,
-                    isFavorited: allCurrencies[index].isFavorited,
-                    
-                )
-            } else {
-                allCurrencies[index] = RandomlyGeneratedCurrency(
-                    id: allCurrencies[index].id,
-                    name: allCurrencies[index].name,
-                    value: allCurrencies[index].value,
-                    type: allCurrencies[index].type,
-                    isChosen: false,
-                    isFavorited: allCurrencies[index].isFavorited
-                )
-            }
+            let isChosen = chosenCurrenciesIndetifiers.contains(allCurrencies[index].id)
+            allCurrencies[index] = RandomlyGeneratedCurrency(
+                id: allCurrencies[index].id,
+                name: allCurrencies[index].name,
+                value: allCurrencies[index].value,
+                quantity: allCurrencies[index].quantity,
+                type: allCurrencies[index].type,
+                isChosen: isChosen,
+                isFavorited: allCurrencies[index].isFavorited,
+                
+            )
         }
         if let currencyTypeFilteredBy {
             filterCurrenciesByType(currencyTypeFilteredBy)
@@ -200,6 +198,7 @@ private extension CurrencyDataProvider {
                 id: allCurrencies[index].id,
                 name: allCurrencies[index].name,
                 value: allCurrencies[index].value,
+                quantity: allCurrencies[index].quantity,
                 type: allCurrencies[index].type,
                 isChosen: allCurrencies[index].isChosen,
                 isFavorited: !allCurrencies[index].isFavorited)
@@ -215,7 +214,7 @@ extension CurrencyDataProvider: UICollectionViewDataSource {
         } else {
             count = allCurrencies.count
         }
-        return count == 0 ? 1 : count
+        return count == .zero ? 1 : count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {

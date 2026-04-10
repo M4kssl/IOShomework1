@@ -8,12 +8,12 @@
 import Foundation
 
 protocol DealHistoryHandlerProtocol {
-    func getLastDealForCurrency(withName currencyName: Currency.CurrencyName, in history: [Deal]) -> Deal?
-    func getDealResult(for currency: Currency, with action: Action, using dealHistory: [Deal]) -> String
+    func getLastDealForCurrency(withIndetifier id: UUID, in history: [Deal]) -> Deal?
+    func getDealResult(for currency: RandomlyGeneratedCurrency, with action: Action, using dealHistory: [Deal]) -> String
 }
 
 final class BotHistoryHandler: DealHistoryHandlerProtocol {
-    func getDealResult(for currency: Currency, with action: Action, using history: [Deal]) -> String {
+    func getDealResult(for currency: RandomlyGeneratedCurrency, with action: Action, using history: [Deal]) -> String {
         let toValue: Double = currency.quantity * currency.value
         var fromValue: Double = .zero
         var actionToSearch: Action = .ignore
@@ -36,7 +36,7 @@ final class BotHistoryHandler: DealHistoryHandlerProtocol {
         return "\(action) FROM = \(fromValue.stringWithTwoDecimalPlaces) -> TO = \(toValue.stringWithTwoDecimalPlaces), INCOME = \(income.stringWithTwoDecimalPlaces)\n"
     }
     
-    func getLastDealForCurrency(withName currencyName: Currency.CurrencyName, in history: [Deal]) -> Deal? {
-        return history.last(where: { $0.currency.name == currencyName })
+    func getLastDealForCurrency(withIndetifier id: UUID, in history: [Deal]) -> Deal? {
+        return history.last(where: { $0.currency.id == id })
     }
 }

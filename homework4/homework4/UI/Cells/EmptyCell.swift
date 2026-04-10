@@ -61,6 +61,7 @@ private extension EmptyCell {
     }
 }
 
+// MARK: - Identifier
 extension EmptyCell {
     static let identifier = "EmptyCell"
 }

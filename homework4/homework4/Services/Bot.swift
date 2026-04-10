@@ -13,51 +13,72 @@ enum Action {
     case sell
 }
 
-struct Deal: Equatable {
+struct Deal {
     let id: UUID
     let action: Action
-    let currency: Currency
+    let currency: RandomlyGeneratedCurrency
     let result: String?
     let timestamp: Date
 }
 
 struct RequestForMarket {
     let action: Action
-    let currency: Currency
+    let currency: RandomlyGeneratedCurrency
     let quantity: Double
 }
 
 protocol BotProtocol {
     var balance: Double { get }
     var decisionsMade: Int { get }
-    var currenciesOnHand: [Currency] { get }
-    func decideOnAction(for currency: Currency) -> Action
-    func formARequestForMarket(toMake action: Action, for currency: Currency) -> RequestForMarket
+    var currenciesOnHand: [UUID : RandomlyGeneratedCurrency] { get }
+    var chosenCurrencies: [RandomlyGeneratedCurrency] { get }
+    func decideOnAction(for currency: RandomlyGeneratedCurrency) -> Action
+    func formARequestForMarket(toMake action: Action, for currency: RandomlyGeneratedCurrency) -> RequestForMarket
     func processMarketResponse(_ response: MarketResponse)
-    func getLastDealForCurrency(withName currencyName: Currency.CurrencyName) -> Deal?
+    func getLastDealForCurrency(withIdentifier id: UUID) -> Deal?
     func getDealHistory() -> [Deal]
+    func setCurrencyAsChosen(currency: RandomlyGeneratedCurrency, at index: Int)
+    func resetTradingHistory()
 }
 
 final class Bot: BotProtocol {
     private var dealHistory: [Deal] = []
     
     private(set) var balance: Double
-    private(set) var currenciesOnHand: [Currency] = []
+    private(set) var currenciesOnHand = [UUID : RandomlyGeneratedCurrency]()
     private(set) var decisionsMade: Int = 0
+    private(set) var chosenCurrencies = [RandomlyGeneratedCurrency]()
     
     let historyHandler: DealHistoryHandlerProtocol
     
-    init (historyhandler: DealHistoryHandlerProtocol) {
+    init(
+        currencies: [RandomlyGeneratedCurrency],
+        historyHandler: DealHistoryHandlerProtocol,
+        amountOfChosenCurrencies: Int
+    ) {
         balance = DefaultValues.initialBalance
-        for currency in Currency.CurrencyName.allCases {
-            currenciesOnHand.append(Currency(name: currency, quantity: .zero, value: .zero))
+        self.historyHandler = historyHandler
+        
+        for currency in currencies {
+            currenciesOnHand[currency.id] = RandomlyGeneratedCurrency(
+                id: currency.id,
+                name: currency.name,
+                value: .zero,
+                quantity: .zero,
+                type: currency.type,
+                isChosen: currency.isChosen,
+                isFavorited: currency.isFavorited
+            )
         }
-        self.historyHandler = historyhandler
+        for _ in .zero..<amountOfChosenCurrencies {
+            chosenCurrencies.append(RandomlyGeneratedCurrency.generatePlaceholderCurrency())
+        }
     }
     
-    func decideOnAction(for currency: Currency) -> Action {
+    func decideOnAction(for currency: RandomlyGeneratedCurrency) -> Action {
         var decidedAction = Action.ignore
-        if let currencyOnHand = currenciesOnHand.first(where: { $0.name == currency.name }) {
+        let key = currency.id
+        if let currencyOnHand = currenciesOnHand[key] {
             if currencyOnHand.quantity > .zero, currencyOnHand.value < currency.value {
                 decidedAction = .sell
             } else if currencyOnHand.quantity == .zero, currency.value <= balance, currency.value < DefaultValues.maxValueToPurchase {
@@ -68,13 +89,14 @@ final class Bot: BotProtocol {
         return decidedAction
     }
     
-    func formARequestForMarket(toMake action: Action, for currency:  Currency) -> RequestForMarket {
+    func formARequestForMarket(toMake action: Action, for currency:  RandomlyGeneratedCurrency) -> RequestForMarket {
         switch action {
         case .purchase:
             let quantity = Bot.quantityToBuy(for: currency, balance)
             return RequestForMarket(action: action, currency: currency, quantity: quantity)
         case .sell:
-            if let currencyOnHand = currenciesOnHand.first(where: { $0.name == currency.name }) {
+            let key = currency.id
+            if let currencyOnHand = currenciesOnHand[key] {
                 return RequestForMarket(action: action, currency: currency, quantity: currencyOnHand.quantity)
             } else {
                 return RequestForMarket(action: .ignore, currency: currency, quantity: .zero)
@@ -88,26 +110,35 @@ final class Bot: BotProtocol {
         guard response.status == .success else {
             return
         }
-        if let index = currenciesOnHand.firstIndex(where: { $0.name == response.request.currency.name }) {
+        let key = response.request.currency.id
+        if let currency = currenciesOnHand[key] {
             var newQuantity: Double = .zero
             var newValue: Double = .zero
             switch response.request.action {
             case .purchase:
-                newQuantity = currenciesOnHand[index].quantity + response.request.quantity
+                newQuantity = currency.quantity + response.request.quantity
                 newValue = response.request.currency.value
                 balance -= response.request.quantity * response.request.currency.value
             case .sell:
-                newQuantity = currenciesOnHand[index].quantity - response.request.quantity
+                newQuantity = currency.quantity - response.request.quantity
                 balance += response.request.quantity * response.request.currency.value
             default:
                 break
             }
-            currenciesOnHand[index] = Currency(name: response.request.currency.name, quantity: newQuantity, value: newValue)
+            currenciesOnHand[key] = RandomlyGeneratedCurrency(
+                id: currency.id,
+                name: currency.name,
+                value: newValue,
+                quantity: newQuantity,
+                type: currency.type,
+                isChosen: currency.isChosen,
+                isFavorited: currency.isFavorited
+            )
             registerDeal(for: response.request.currency, action: response.request.action)
         }
     }
     
-    func registerDeal(for currency: Currency, action: Action) {
+    func registerDeal(for currency: RandomlyGeneratedCurrency, action: Action) {
         let newDeal = Deal(
             id: UUID(),
             action: action,
@@ -118,21 +149,61 @@ final class Bot: BotProtocol {
         dealHistory.append(newDeal)
     }
     
-    func getLastDealForCurrency(withName currencyName: Currency.CurrencyName) -> Deal? {
-        return historyHandler.getLastDealForCurrency(withName: currencyName, in: dealHistory)
+    func getLastDealForCurrency(withIdentifier id: UUID) -> Deal? {
+        return historyHandler.getLastDealForCurrency(withIndetifier: id, in: dealHistory)
     }
     
     func getDealHistory() -> [Deal] {
         return dealHistory
     }
+    
+    func setCurrencyAsChosen(currency: RandomlyGeneratedCurrency, at index: Int) {
+        if currency.id != UUID.empty {
+            chosenCurrencies[index] = currency
+            synchronizeCurrencies()
+        }
+    }
+    
+    func resetTradingHistory() {
+        dealHistory.removeAll()
+        decisionsMade = 0
+    }
 }
 
 // MARK: - Private methods
 private extension Bot {
-    private static func quantityToBuy(for currency: Currency, _ balance: Double) -> Double {
+    private static func quantityToBuy(for currency: RandomlyGeneratedCurrency, _ balance: Double) -> Double {
         let maximumQuantity = balance/currency.value
         return Double.random(in: 1...maximumQuantity)
     }
+    
+    func synchronizeCurrencies() {
+        let chosenCurrenciesIndetifiers = getChosenCurrenciesIdentifiers()
+        for key in currenciesOnHand.keys {
+            if let currency = currenciesOnHand[key] {
+                let isChosen = chosenCurrenciesIndetifiers.contains(currency.id)
+                currenciesOnHand[key] = RandomlyGeneratedCurrency(
+                    id: currency.id,
+                    name: currency.name,
+                    value: currency.value,
+                    quantity: currency.quantity,
+                    type: currency.type,
+                    isChosen: isChosen,
+                    isFavorited: currency.isFavorited
+                )
+            }
+        }
+    }
+    
+    func getChosenCurrenciesIdentifiers() -> [UUID] {
+        var identifiers = [UUID]()
+        for currency in self.chosenCurrencies {
+            identifiers.append(currency.id)
+        }
+        return identifiers
+    }
+
+    
 }
 
 extension Bot {

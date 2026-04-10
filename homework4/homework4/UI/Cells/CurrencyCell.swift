@@ -18,8 +18,8 @@ final class CurrencyCell: UICollectionViewCell {
     private let currencyDataLabel = UILabel()
     private let starImageView = UIImageView()
     private let stackView = UIStackView()
-    weak var delegate: CurrencyCellDelegate?
     
+    weak var delegate: CurrencyCellDelegate?
     var displayedCurrency: RandomlyGeneratedCurrency? {
         didSet {
             update()
@@ -126,7 +126,10 @@ private extension CurrencyCell {
             starImageView.heightAnchor.constraint(lessThanOrEqualToConstant: StarSize.height)
         ])
     }
-    
+}
+
+// MARK: - Action Handlers
+private extension CurrencyCell {
     @objc
     func handleStarTap(_ gesture: UITapGestureRecognizer) {
         if let displayedCurrency {
