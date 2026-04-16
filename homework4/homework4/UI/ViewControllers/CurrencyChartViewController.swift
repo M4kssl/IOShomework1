@@ -13,6 +13,10 @@ final class CurrencyChartViewController: UIViewController {
     private let recommenationLabel = UILabel()
     private let candlestickDetail = CandlestickDetail()
     private let avalibleRecommentadions = ["Recommended to buy", "Recommended to sell", "Recommended to ignore"]
+    private let linearChart = LinearChartView()
+    private let chartSelectionStackView = UIStackView()
+    private let candlestickChartButton = UIButton()
+    private let linearChartButton = UIButton()
     
     private var chartLayot: UICollectionViewFlowLayout = {
         let layout = UICollectionViewFlowLayout()
@@ -35,6 +39,11 @@ final class CurrencyChartViewController: UIViewController {
         setupUI()
         setConstraints()
     }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        chartCollectionView.collectionViewLayout.invalidateLayout()
+    }
 }
 
 // MARK: - Private Methods
@@ -43,19 +52,29 @@ private extension CurrencyChartViewController {
         view.addSubview(chartCollectionView)
         view.addSubview(candlestickDetail)
         view.addSubview(recommenationLabel)
+        view.addSubview(linearChart)
+        
+        view.addSubview(chartSelectionStackView)
+        chartSelectionStackView.addArrangedSubview(candlestickChartButton)
+        chartSelectionStackView.addArrangedSubview(linearChartButton)
     }
     
     func setupUI() {
         view.backgroundColor = .systemYellow
         setupChartCollectionView()
-        setupCandlestickDetail()
         setupRecommendationLabel()
+        setupLinearChart()
+        setupChartSelectionStackView()
+        setupCandlestickChartButton()
+        setupLinearChartButton()
     }
     
     func setConstraints() {
         setCandleDetailConstraints()
         setRecommendationLabelConstraints()
         setChartCollectionViewConstraints()
+        setLinearChartConstraints()
+        setChartSelectionStackViewConstraints()
     }
     
     func setupChartCollectionView() {
@@ -65,8 +84,31 @@ private extension CurrencyChartViewController {
         chartCollectionView.register(ChartCell.self, forCellWithReuseIdentifier: ChartCell.identifier)
     }
     
-    func setupCandlestickDetail() {
-        // TODO: implement if needed
+    func setupChartSelectionStackView() {
+        chartSelectionStackView.spacing = StackViewSpacing.extraSmall
+        chartSelectionStackView.distribution = .fillEqually
+        chartSelectionStackView.axis = .horizontal
+    }
+    
+    func setupCandlestickChartButton() {
+        candlestickChartButton.setTitle(DefaulValues.candlestickChartButtonText, for: .normal)
+        candlestickChartButton.layer.borderWidth = BorderWidth.thin
+        candlestickChartButton.layer.cornerRadius = CornerRadius.small
+        candlestickChartButton.backgroundColor = .white
+        candlestickChartButton.setTitleColor(.systemBlue, for: .selected)
+        candlestickChartButton.setTitleColor(.black, for: .normal)
+        candlestickChartButton.isSelected = true
+        candlestickChartButton.addTarget(self, action: #selector(handleChartButtonTap), for: .touchUpInside)
+    }
+    
+    func setupLinearChartButton() {
+        linearChartButton.setTitle(DefaulValues.candlestickChartButtonText, for: .normal)
+        linearChartButton.layer.borderWidth = BorderWidth.thin
+        linearChartButton.layer.cornerRadius = CornerRadius.small
+        linearChartButton.backgroundColor = .white
+        linearChartButton.setTitleColor(.systemBlue, for: .selected)
+        linearChartButton.setTitleColor(.black, for: .normal)
+        linearChartButton.addTarget(self, action: #selector(handleChartButtonTap), for: .touchUpInside)
     }
     
     func setupRecommendationLabel() {
@@ -75,11 +117,20 @@ private extension CurrencyChartViewController {
         recommenationLabel.text = DefaulValues.recommendationText
     }
     
+    func setupLinearChart() {
+        linearChart.displayedCandlesticks = chartDataGenerator.candlesticks
+        let minMaxPrices = chartDataGenerator.getTotalMinMaxPrices()
+        linearChart.lowestOverallPrice = minMaxPrices.min
+        linearChart.highesOverallPrice = minMaxPrices.max
+        linearChart.delegate = self
+        linearChart.alpha = .zero
+    }
+    
     func setChartCollectionViewConstraints() {
         chartCollectionView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             chartCollectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -ConstraintSpacing.standard),
-            chartCollectionView.topAnchor.constraint(equalTo: recommenationLabel.bottomAnchor, constant: ConstraintSpacing.standard),
+            chartCollectionView.topAnchor.constraint(equalTo: chartSelectionStackView.bottomAnchor, constant: ConstraintSpacing.standard),
             chartCollectionView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: ConstraintSpacing.standard),
             chartCollectionView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -ConstraintSpacing.standard)
         ])
@@ -100,10 +151,45 @@ private extension CurrencyChartViewController {
         recommenationLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             recommenationLabel.topAnchor.constraint(equalTo: candlestickDetail.bottomAnchor, constant: ConstraintSpacing.standard),
-            recommenationLabel.bottomAnchor.constraint(equalTo: chartCollectionView.topAnchor, constant: -ConstraintSpacing.standard),
+            recommenationLabel.bottomAnchor.constraint(equalTo: chartSelectionStackView.topAnchor, constant: -ConstraintSpacing.standard),
             recommenationLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: ConstraintSpacing.standard),
             recommenationLabel.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -ConstraintSpacing.standard),
         ])
+    }
+    
+    func setLinearChartConstraints() {
+        linearChart.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            linearChart.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -ConstraintSpacing.standard),
+            linearChart.topAnchor.constraint(equalTo: chartSelectionStackView.bottomAnchor, constant: ConstraintSpacing.standard),
+            linearChart.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: ConstraintSpacing.standard),
+            linearChart.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -ConstraintSpacing.standard)
+        ])
+    }
+    
+    func setChartSelectionStackViewConstraints() {
+        chartSelectionStackView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            chartSelectionStackView.topAnchor.constraint(equalTo: recommenationLabel.bottomAnchor, constant: ConstraintSpacing.standard),
+            chartSelectionStackView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: ConstraintSpacing.standard),
+            chartSelectionStackView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -ConstraintSpacing.standard)
+        ])
+    }
+    
+    func crossDissolveViews(form oldView: UIView, to newView: UIView) {
+        UIView.animate(
+            withDuration: 0.4,
+            animations: {
+                oldView.alpha = .zero
+                newView.alpha = 1
+            },
+            completion: nil
+        )
+    }
+    
+    func updateChartButtonsState(lastTappedButton: UIButton) {
+        candlestickChartButton.isSelected = lastTappedButton == candlestickChartButton
+        linearChartButton.isSelected = lastTappedButton == linearChartButton
     }
 }
 
@@ -123,6 +209,20 @@ extension CurrencyChartViewController: UICollectionViewDataSource {
         cell?.delegate = self
         cell?.configureCandlestick()
         return cell ?? UICollectionViewCell()
+    }
+}
+
+// MARK: - Action Handlers
+private extension CurrencyChartViewController {
+    @objc
+    func handleChartButtonTap(_ sender: UIButton) {
+        if sender == candlestickChartButton {
+            crossDissolveViews(form: linearChart, to: chartCollectionView)
+        } else {
+            crossDissolveViews(form: chartCollectionView, to: linearChart)
+            linearChart.redraw()
+        }
+        updateChartButtonsState(lastTappedButton: sender)
     }
 }
 
@@ -148,11 +248,20 @@ extension CurrencyChartViewController: ChartCellDelegate {
     }
 }
 
+// MARK: - LinearChartDelegate Implementation
+extension CurrencyChartViewController: LinearChartDelegate {
+    func nodeSelected(node: ChartNode) {
+        candlestickDetail.displayedCandlestick = node.candlestick
+    }
+}
+
 // MARK: - Constants
 private extension CurrencyChartViewController {
     struct DefaulValues {
-        static let amountOfCandlesticks = 200
+        static let amountOfCandlesticks = 40
         static let recommendationText = "Choose candlestick to see recommendation"
-        static let candlestickWidthToChartWidthRatio: CGFloat = 0.02
+        static let candlestickWidthToChartWidthRatio: CGFloat = 0.04
+        static let candlestickChartButtonText = "Candlestick chart"
+        static let linearChartButtonText = "Linear chart"
     }
 }
