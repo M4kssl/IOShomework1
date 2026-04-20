@@ -26,22 +26,27 @@ final class FavoriteCurrenciesViewController: UIViewController {
         aomuntOfCurrencies: DefaultValues.amountOfCurrencuesToGenerate,
         amountOfChosenCurrencies: DefaultValues.amountOfCurrenciesToChoose
     )
+    
     private var timer: Timer?
     private var timerLabelText: String {
         return "Time before update: \(timerTimeLeft.stringWithTwoDecimalPlaces)"
     }
+    
     private var timerTimeLeft: Double = DefaultValues.timerDuration
     private var conversionResultText: String {
         return "\(conversionResult.stringWithTwoDecimalPlaces) \(currencyDataGenerator.chosenCurrencies[DefaultValues.convertToCurrencyIndex].name)"
     }
+    
     private var selectedCurrencyToChooseIndex: Int? {
         return currenciesToChoose.firstIndex(where: { $0.isChosen })
     }
+    
     private var conversionResult: Double = .zero {
         didSet {
             updateConversionResultLabel()
         }
     }
+    
     private var currenciesToChoose = [CurrencyToChooseView]()
     private var layout: UICollectionViewFlowLayout = {
         let layout = UICollectionViewFlowLayout()
@@ -53,6 +58,7 @@ final class FavoriteCurrenciesViewController: UIViewController {
             right: ConstraintSpacing.small)
         return layout
     }()
+    
     private lazy var currencyCollectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
     
     var currenciesToDisplay: [RandomlyGeneratedCurrency]?
@@ -82,6 +88,7 @@ private extension FavoriteCurrenciesViewController {
             currenciesToChoose[index].currencyText = currencyDataGenerator.chosenCurrencies[index].stringToDisplay
         }
         currencyCollectionView.reloadData()
+        currencyCollectionView.layoutIfNeeded()
         updateConversionResult()
         if let currencyToReselectIndex {
             currenciesToChoose[currencyToReselectIndex].isChosen = true
@@ -123,7 +130,7 @@ private extension FavoriteCurrenciesViewController {
         view.addSubview(currencyStackView)
         view.addSubview(showAllButton)
         view.addSubview(timerLabel)
-
+        
         currencyCollectionView.register(CurrencyCell.self, forCellWithReuseIdentifier: CurrencyCell.identifier)
         currencyCollectionView.register(EmptyCell.self, forCellWithReuseIdentifier: EmptyCell.identifier)
         view.addSubview(currencyCollectionView)
@@ -166,7 +173,6 @@ private extension FavoriteCurrenciesViewController {
         showAllButton.setTitleColor(.black, for: .normal)
         showAllButton.isSelected = true
         showAllButton.addTarget(self, action: #selector(handleShowAllButtonTap), for: .touchUpInside)
-
     }
     
     func setupCurrencyCollectionView() {
@@ -376,14 +382,45 @@ private extension FavoriteCurrenciesViewController {
     }
 }
 
+// MARK: - Animations
+private extension FavoriteCurrenciesViewController {
+    func aninmateCellSelection(at indexPath: IndexPath) {
+        currencyCollectionView.scrollToItem(at: indexPath, at: .centeredVertically, animated: false)
+        
+        if let cell = currencyCollectionView.cellForItem(at: indexPath) as? CurrencyCell {
+            UIView.animate(
+                withDuration: DefaultValues.tapAnimationDuration,
+                delay: .zero,
+                options: [ .curveEaseInOut],
+                animations: {
+                    cell.contentView.backgroundColor = .systemGreen
+                    cell.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+                },
+                completion: { _ in
+                    UIView.animate(
+                        withDuration: DefaultValues.tapAnimationDuration,
+                        delay: .zero,
+                        options: [ .curveEaseInOut],
+                        animations: {
+                            cell.transform = CGAffineTransform(scaleX: 1, y: 1)
+                        }
+                    )
+                }
+            )
+        }
+    }
+}
+
 // MARK: - CurrencyDelegateProtocol Implementation
 extension FavoriteCurrenciesViewController: CurrencyDelegatePrtocol {
-    func currencyChosen(_ currency: RandomlyGeneratedCurrency) {
+    func currencyChosen(from currencies: [RandomlyGeneratedCurrency], at indexPath: IndexPath) {
+        let currency = currencies[indexPath.row]
         if let selectedCurrencyToChooseIndex, !currency.isChosen {
             deselectAllCurrenciesToChoose()
             currencyDataGenerator.chooseCurrency(currency: currency, chosenCurrenciesIndex: selectedCurrencyToChooseIndex)
             favoriteCurrenciesDelegate?.currencyChosen(chosenCurrencies: currencyDataGenerator.chosenCurrencies)
             updateViewFromModel()
+            aninmateCellSelection(at: indexPath)
         }
     }
     
@@ -413,6 +450,7 @@ private extension FavoriteCurrenciesViewController {
         static let maximumButtonHeight = CGFloat(30)
         // Timer ticks every one hundredth of a second
         static let timerTimeInterval = 0.01
+        static let tapAnimationDuration = 0.05
     }
     
     struct Texts {

@@ -43,6 +43,8 @@ final class CurrencyCell: UICollectionViewCell {
         delegate = nil
         contentView.layer.borderColor = UIColor.black.cgColor
         currencyDataLabel.textColor = .black
+        contentView.backgroundColor = .white
+        transform = CGAffineTransform(scaleX: 1, y: 1)
     }
 }
 
@@ -54,8 +56,7 @@ private extension CurrencyCell {
         currencyDataLabel.sizeToFit()
         starImageView.image = getStarImage()
         if displayedCurrency?.isChosen ?? false {
-            contentView.layer.borderColor = UIColor.gray.cgColor
-            currencyDataLabel.textColor = .gray
+            self.contentView.backgroundColor = .systemGreen
         }
     }
     
@@ -75,8 +76,7 @@ private extension CurrencyCell {
         starImageView.addGestureRecognizer(
             UITapGestureRecognizer(
                 target: self,
-                action: #selector(handleStarTap),
-                
+                action: #selector(handleStarTap)
             )
         )
     }
@@ -138,7 +138,7 @@ private extension CurrencyCell {
     }
 }
 
-// MARK: Drawing Star
+// MARK: - Drawing Star
 private extension CurrencyCell {
     func drawStar(in rect: CGRect, context: CGContext) {
         let center = CGPoint(x: rect.midX, y: rect.midY)

@@ -21,15 +21,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 }
 
 private extension SceneDelegate {
-    func createRootViewController() -> UITabBarController {
-        let tabBarController = UITabBarController()
-        let botViewController = BotViewController()
-        
-        botViewController.tabBarItem = UITabBarItem(title: "Bot", image: UIImage(systemName: "brain"), tag: 0)
-        botViewController.title = "Bot"
+    func createRootViewController() -> UINavigationController {
+        let splashScreen = SplashScreenViewController()
        
-        let botNavigationController = UINavigationController(rootViewController: botViewController)
-        tabBarController.viewControllers = [botNavigationController]
-        return tabBarController
+        let splashScreenNavigationController = UINavigationController(rootViewController: splashScreen)
+        return splashScreenNavigationController
     }
 }
