@@ -211,7 +211,6 @@ private extension ChartCell {
         let height = bounds.height
         if let highesOverallPrice, let lowestOverallPrice, height > 0 {
             let totalRange = highesOverallPrice - lowestOverallPrice
-            let height = bounds.height
             return totalRange / height
         } else {
             return nil
