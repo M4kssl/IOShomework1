@@ -25,7 +25,7 @@ final class ChartDataGenerator: ChartDataGeneratorProtocol {
     }
     
     func getTotalMinMaxPrices() -> (min: Double, max: Double) {
-        var maxPrice: Double = 0
+        var maxPrice: Double = .zero
         var minPrice: Double = .infinity
         for candle in candlesticks {
             if candle.minimumPrice < minPrice {

@@ -377,7 +377,7 @@ private extension BotViewController {
         var allCurrencies = market.getAllCurrencies()
         for index in traderBot.chosenCurrencies.indices {
             if !allCurrencies.isEmpty {
-                let randomIndex = Int.random(in: 0..<allCurrencies.endIndex)
+                let randomIndex = Int.random(in: .zero..<allCurrencies.endIndex)
                 let currency = allCurrencies.remove(at: randomIndex)
                 traderBot.setCurrencyAsChosen(currency: currency, at: index)
             }

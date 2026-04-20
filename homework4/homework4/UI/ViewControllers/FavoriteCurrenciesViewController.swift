@@ -389,8 +389,8 @@ private extension FavoriteCurrenciesViewController {
         
         if let cell = currencyCollectionView.cellForItem(at: indexPath) as? CurrencyCell {
             UIView.animate(
-                withDuration: 0.05,
-                delay: 0,
+                withDuration: DefaultValues.tapAnimationDuration,
+                delay: .zero,
                 options: [ .curveEaseInOut],
                 animations: {
                     cell.contentView.backgroundColor = .systemGreen
@@ -398,8 +398,8 @@ private extension FavoriteCurrenciesViewController {
                 },
                 completion: { _ in
                     UIView.animate(
-                        withDuration: 0.05,
-                        delay: 0,
+                        withDuration: DefaultValues.tapAnimationDuration,
+                        delay: .zero,
                         options: [ .curveEaseInOut],
                         animations: {
                             cell.transform = CGAffineTransform(scaleX: 1, y: 1)
@@ -450,6 +450,7 @@ private extension FavoriteCurrenciesViewController {
         static let maximumButtonHeight = CGFloat(30)
         // Timer ticks every one hundredth of a second
         static let timerTimeInterval = 0.01
+        static let tapAnimationDuration = 0.05
     }
     
     struct Texts {

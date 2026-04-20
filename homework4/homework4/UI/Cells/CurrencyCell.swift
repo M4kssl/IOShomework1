@@ -76,8 +76,7 @@ private extension CurrencyCell {
         starImageView.addGestureRecognizer(
             UITapGestureRecognizer(
                 target: self,
-                action: #selector(handleStarTap),
-                
+                action: #selector(handleStarTap)
             )
         )
     }
