@@ -13,6 +13,7 @@ final class BotViewController: UIViewController {
         historyHandler: botHistoryHandler,
         amountOfChosenCurrencies: DefaultValues.amountOfCurrenciesToChoose
     )
+    
     private lazy var botHistoryHandler = BotHistoryHandler()
     
     private let runButton = UIButton()
@@ -373,9 +374,11 @@ private extension BotViewController {
     
     @objc
     func handleChooseRandomCurrencyTap() {
-        let allCurrencies = market.getAllCurrencies()
+        var allCurrencies = market.getAllCurrencies()
         for index in traderBot.chosenCurrencies.indices {
-            if let currency = allCurrencies.randomElement() {
+            if !allCurrencies.isEmpty {
+                let randomIndex = Int.random(in: 0..<allCurrencies.endIndex)
+                let currency = allCurrencies.remove(at: randomIndex)
                 traderBot.setCurrencyAsChosen(currency: currency, at: index)
             }
         }
@@ -419,7 +422,6 @@ private extension BotViewController {
         }
     }
 }
-
 
 // MARK: UITableViewDataSource Implementation
 extension BotViewController: UITableViewDataSource {

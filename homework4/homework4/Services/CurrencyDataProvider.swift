@@ -9,7 +9,7 @@ import Foundation
 import UIKit
 
 protocol CurrencyDelegatePrtocol: AnyObject {
-    func currencyChosen(_ currency: RandomlyGeneratedCurrency)
+    func currencyChosen(from currencies: [RandomlyGeneratedCurrency], at indexPath: IndexPath)
     func favoriteMarkChanged()
 }
 
@@ -179,6 +179,11 @@ private extension CurrencyDataProvider {
                 
             )
         }
+        
+        if isFilteredByFavorite {
+            filteredCurrencies = allCurrencies.filter { $0.isFavorited }
+        }
+        
         if let currencyTypeFilteredBy {
             filterCurrenciesByType(currencyTypeFilteredBy)
         }
@@ -247,7 +252,7 @@ extension CurrencyDataProvider: UICollectionViewDelegate {
             arrayToDisplay = allCurrencies
         }
         if !arrayToDisplay.isEmpty {
-            delegate?.currencyChosen(arrayToDisplay[indexPath.row])
+            delegate?.currencyChosen(from: arrayToDisplay, at: indexPath)
         }
     }
 }

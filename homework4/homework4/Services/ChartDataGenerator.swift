@@ -7,49 +7,20 @@
 
 import Foundation
 
+protocol ChartDataGeneratorProtocol {
+    var candlesticks: [Candlestick] { get }
+    func generateCandles(amountOfCandles: Int)
+    func getTotalMinMaxPrices() -> (min: Double, max: Double)
+    func addRandomizedCandlestick()
+}
+
 final class ChartDataGenerator {
     private(set) var candlesticks = [Candlestick]()
     
     func generateCandles(amountOfCandles: Int) {
         candlesticks.removeAll()
-        var previousClosePrice: Double = DefaultValues.startingPrice
         for _ in .zero..<amountOfCandles {
-            let isOpenPriceUp = Bool.random()
-            let isClosePriceUp = Bool.random()
-            
-            var openPrice: Double
-            var closePrice: Double
-            var minPrice: Double
-            var maxPrice: Double
-            
-            if isOpenPriceUp {
-                openPrice = previousClosePrice + Double.random(in: .zero...DefaultValues.оpenPriceDeviation)
-            } else {
-                openPrice = previousClosePrice - Double.random(in: .zero...DefaultValues.оpenPriceDeviation)
-            }
-            
-            if isClosePriceUp {
-                closePrice = openPrice + Double.random(in: DefaultValues.bodyDeviationRange)
-            } else {
-                closePrice = openPrice - Double.random(in: DefaultValues.bodyDeviationRange)
-            }
-            
-            let maxPriceDeviation = Double.random(in: DefaultValues.shadowDeviationRange)
-            let minPriceDeviation = Double.random(in: DefaultValues.shadowDeviationRange)
-            
-            maxPrice = isClosePriceUp ? closePrice + maxPriceDeviation : openPrice + maxPriceDeviation
-            minPrice = isClosePriceUp ? openPrice - minPriceDeviation : closePrice - maxPriceDeviation
-            
-            let newCandlestick = Candlestick(
-                id: UUID(),
-                openPrice: openPrice,
-                closePrice: closePrice,
-                minimumPrice: minPrice,
-                maximumPrice: maxPrice
-            )
-            candlesticks.append(newCandlestick)
-            
-            previousClosePrice = closePrice
+            addRandomizedCandlestick()
         }
     }
     
@@ -65,6 +36,48 @@ final class ChartDataGenerator {
             }
         }
         return (min: minPrice, max: maxPrice)
+    }
+    
+    func addRandomizedCandlestick() {
+        let isOpenPriceUp = Bool.random()
+        let isClosePriceUp = Bool.random()
+        var lastClosePrice = DefaultValues.startingPrice
+        
+        if !candlesticks.isEmpty {
+            lastClosePrice = candlesticks[candlesticks.endIndex - 1].closePrice
+        }
+        
+        var openPrice: Double
+        var closePrice: Double
+        var minPrice: Double
+        var maxPrice: Double
+        
+        if isOpenPriceUp {
+            openPrice = lastClosePrice + Double.random(in: .zero...DefaultValues.оpenPriceDeviation)
+        } else {
+            openPrice = lastClosePrice - Double.random(in: .zero...DefaultValues.оpenPriceDeviation)
+        }
+        
+        if isClosePriceUp {
+            closePrice = openPrice + Double.random(in: DefaultValues.bodyDeviationRange)
+        } else {
+            closePrice = openPrice - Double.random(in: DefaultValues.bodyDeviationRange)
+        }
+        
+        let maxPriceDeviation = Double.random(in: DefaultValues.shadowDeviationRange)
+        let minPriceDeviation = Double.random(in: DefaultValues.shadowDeviationRange)
+        
+        maxPrice = isClosePriceUp ? closePrice + maxPriceDeviation : openPrice + maxPriceDeviation
+        minPrice = isClosePriceUp ? openPrice - minPriceDeviation : closePrice - maxPriceDeviation
+        
+        let newCandlestick = Candlestick(
+            id: UUID(),
+            openPrice: openPrice,
+            closePrice: closePrice,
+            minimumPrice: minPrice,
+            maximumPrice: maxPrice
+        )
+        candlesticks.append(newCandlestick)
     }
 }
 

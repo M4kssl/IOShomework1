@@ -22,6 +22,8 @@ final class LinearChartView: UIView {
     private let selectedNodeLayer = CAShapeLayer()
     private let gridLayer = CAShapeLayer()
     private let captionsLayer = CALayer()
+    private let blinkingNodeLayer = CAShapeLayer()
+    private let animatedLineLayer = CAShapeLayer()
     
     private var captions = [CATextLayer]()
     private var nodes = [ChartNode]()
@@ -68,6 +70,8 @@ private extension LinearChartView {
     func addSublayers() {
         layer.addSublayer(gridLayer)
         layer.addSublayer(chartLayer)
+        layer.addSublayer(animatedLineLayer)
+        layer.addSublayer(blinkingNodeLayer)
         layer.addSublayer(selectedNodeLayer)
         layer.addSublayer(captionsLayer)
     }
@@ -75,13 +79,29 @@ private extension LinearChartView {
     func setupLayers() {
         setupGridLayer()
         setupChartLayer()
+        setupBlinkingNodeLayer()
         setupSelectedNodeLayer()
+        setupAnimatedLineLayer()
     }
     
     func setupChartLayer() {
         chartLayer.strokeColor = ChartColor.lineColor
         chartLayer.fillColor = ChartColor.nodeColor
         chartLayer.lineWidth = calculateGraphLineWidth() ?? .zero
+    }
+    
+    func setupAnimatedLineLayer() {
+        animatedLineLayer.strokeColor = ChartColor.lineColor
+        animatedLineLayer.lineWidth = calculateGraphLineWidth() ?? .zero
+        addLineDrawingAnimation(toLayer: animatedLineLayer)
+    }
+    
+    func setupBlinkingNodeLayer() {
+        blinkingNodeLayer.strokeColor = ChartColor.blinkingNodeColor
+        blinkingNodeLayer.fillColor = ChartColor.blinkingNodeColor
+        blinkingNodeLayer.position = .zero
+        blinkingNodeLayer.lineWidth = calculateGraphLineWidth() ?? .zero
+        addBlinkingAnimation(toLayer: blinkingNodeLayer)
     }
     
     func setupSelectedNodeLayer() {
@@ -145,30 +165,49 @@ private extension LinearChartView {
         guard let xAxisStep, let priceToHeightRatio, let highesOverallPrice, let radius else { return }
         
         let path = UIBezierPath()
-        for index in displayedCandlesticks.indices {
-            let xPosition: CGFloat = (xAxisStep * CGFloat(index)) + radius
-            let nodeStartXPosition: CGFloat = (xAxisStep * CGFloat(index)) + radius * 2
+        
+        var firstIndexToDraw = 0
+        if displayedCandlesticks.count > DefaultValues.maximumAmountOfNodes {
+            firstIndexToDraw = displayedCandlesticks.count - DefaultValues.maximumAmountOfNodes
+        }
+        
+        for index in firstIndexToDraw..<displayedCandlesticks.endIndex {
+            let xStepMultiplier = index - firstIndexToDraw
+            let xPosition: CGFloat = (xAxisStep * CGFloat(xStepMultiplier)) + radius
+            let nodeStartXPosition: CGFloat = (xAxisStep * CGFloat(xStepMultiplier)) + radius * 2
             let yPosition: CGFloat = (highesOverallPrice - displayedCandlesticks[index].closePrice) / priceToHeightRatio
             let center = CGPoint(x: xPosition, y: yPosition)
             let nodeStartPoint = CGPoint(x: nodeStartXPosition, y: yPosition)
-            
-            // Drawing Line
-            if index == 0 {
-                path.move(to: center)
+            if index == displayedCandlesticks.endIndex - 1 {
+                drawMovingLine(from: path.currentPoint, to: center)
+                drawBlingkingNode(center: path.currentPoint)
+                
+                let xMovement = center.x - path.currentPoint.x
+                let yMovement = center.y - path.currentPoint.y
+                addStraightLineMovemetAnimation(
+                    toLayer: blinkingNodeLayer,
+                    xMovement: xMovement,
+                    yMovement: yMovement
+                )
             } else {
-                path.addLine(to: center)
+                // Drawing Line
+                if index == firstIndexToDraw {
+                    path.move(to: center)
+                } else {
+                    path.addLine(to: center)
+                }
+                
+                // Drawing Node
+                path.move(to: nodeStartPoint)
+                path.addArc(
+                    withCenter: center,
+                    radius: radius,
+                    startAngle: .zero,
+                    endAngle: .pi * 2,
+                    clockwise: true
+                )
+                path.move(to: center)
             }
-            
-            // Drawing Node
-            path.move(to: nodeStartPoint)
-            path.addArc(
-                withCenter: center,
-                radius: radius,
-                startAngle: .zero,
-                endAngle: .pi * 2,
-                clockwise: true
-            )
-            path.move(to: center)
             
             let newNode = ChartNode(point: center, candlestick: displayedCandlesticks[index])
             nodes.append(newNode)
@@ -287,6 +326,77 @@ private extension LinearChartView {
         )
         return caption
     }
+    
+    func drawBlingkingNode(center: CGPoint) {
+        if let radius = calculateNodeRadius() {
+            let path = UIBezierPath()
+            let nodeStartPoint = CGPoint(x: center.x + radius, y: center.y)
+            
+            path.move(to: nodeStartPoint)
+            path.addArc(
+                withCenter: center,
+                radius: radius,
+                startAngle: .zero,
+                endAngle: .pi * 2,
+                clockwise: true
+            )
+            path.move(to: center)
+            
+            blinkingNodeLayer.path = path.cgPath
+        }
+    }
+    
+    func drawMovingLine(from startPoint: CGPoint, to endPoint: CGPoint) {
+        let path = UIBezierPath()
+        path.move(to: startPoint)
+        path.addLine(to: endPoint)
+        
+        animatedLineLayer.path = path.cgPath
+    }
+}
+
+// MARK: - Animations
+private extension LinearChartView {
+    func addBlinkingAnimation(toLayer layer: CAShapeLayer) {
+        let blinkAnimation = CABasicAnimation(keyPath: "opacity")
+        blinkAnimation.fromValue = 1
+        blinkAnimation.toValue = 0.5
+        blinkAnimation.duration = 1
+        blinkAnimation.autoreverses = true
+        blinkAnimation.repeatCount = .infinity
+        
+        layer.add(blinkAnimation, forKey: "blinkAnimation")
+    }
+    
+    func addLineDrawingAnimation(toLayer animatedLayer: CAShapeLayer) {
+        let lineAnimation = CABasicAnimation(keyPath: "strokeEnd")
+        lineAnimation.fromValue = 0
+        lineAnimation.toValue = 1
+        lineAnimation.duration = DefaultValues.drawingLineAnimationTime
+        lineAnimation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        lineAnimation.fillMode = .forwards
+        lineAnimation.isRemovedOnCompletion = false
+        
+        animatedLayer.add(lineAnimation, forKey: "drawingLine")
+    }
+    
+    func addStraightLineMovemetAnimation(toLayer animatedLayer: CAShapeLayer, xMovement: CGFloat, yMovement: CGFloat) {
+        
+        let pointTomoveTo = CGPoint(
+            x: animatedLayer.position.x + xMovement,
+            y: animatedLayer.position.y + yMovement
+        )
+        let movementAnimation = CABasicAnimation(keyPath: "position")
+        movementAnimation.fromValue = animatedLayer.position
+        movementAnimation.toValue = pointTomoveTo
+        movementAnimation.duration = DefaultValues.drawingLineAnimationTime
+        movementAnimation.fillMode = .forwards
+        movementAnimation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+       
+        animatedLayer.position = pointTomoveTo
+        
+        animatedLayer.add(movementAnimation, forKey: "movement")
+    }
 }
 
 // MARK: - Constants
@@ -294,6 +404,7 @@ private extension LinearChartView {
     struct ChartColor {
         static let lineColor = UIColor.systemBlue.cgColor
         static let nodeColor = UIColor.systemBlue.cgColor
+        static let blinkingNodeColor = UIColor.systemRed.cgColor
         static let gridColor = UIColor.systemGray.cgColor
         static let selectedNode = UIColor.green.cgColor
     }
@@ -301,6 +412,7 @@ private extension LinearChartView {
     struct Multipliers {
         static let graphLineWidth: CGFloat = 0.2
         static let nodeRadius: CGFloat = 0.5
+        static let blinkingDodeRadius: CGFloat = 0.75
         static let tapableNodeRadius: CGFloat = 1
         static let captonHeight: CGFloat = 0.2
     }
@@ -309,6 +421,8 @@ private extension LinearChartView {
         static let gridLineWidth: CGFloat = 0.5
         static let amountOfHorizontalGridLines = 8
         static let amountOfVerticalGridLines = 6
+        static let maximumAmountOfNodes = 30
+        static let drawingLineAnimationTime: TimeInterval = 2
     }
 }
 
@@ -325,16 +439,22 @@ private extension LinearChartView {
     
     func calculateNodeXAxisStep() -> CGFloat? {
         if let displayedCandlesticks {
-            let quantityToDisplay = CGFloat(displayedCandlesticks.count)
-            return bounds.width / quantityToDisplay
+            var quantityToDisplay = DefaultValues.maximumAmountOfNodes
+            if displayedCandlesticks.count < DefaultValues.maximumAmountOfNodes {
+                quantityToDisplay = displayedCandlesticks.count
+            }
+            return bounds.width / CGFloat(quantityToDisplay)
         }
         return nil
     }
     
     func calculateWidthToQuantityhRatio() -> CGFloat? {
         if let displayedCandlesticks {
-            let quantityToDisplay = CGFloat(displayedCandlesticks.count)
-            return bounds.width / quantityToDisplay
+            var quantityToDisplay = DefaultValues.maximumAmountOfNodes
+            if displayedCandlesticks.count < DefaultValues.maximumAmountOfNodes {
+                quantityToDisplay = displayedCandlesticks.count
+            }
+            return bounds.width / CGFloat(quantityToDisplay)
         }
         return nil
     }
@@ -379,6 +499,14 @@ private extension LinearChartView {
         let widthToQuantityhRatio = calculateWidthToQuantityhRatio()
         if let widthToQuantityhRatio {
             return widthToQuantityhRatio * Multipliers.tapableNodeRadius
+        }
+        return nil
+    }
+    
+    func calculateBlinkingNodeRadius() -> CGFloat? {
+        let widthToQuantityhRatio = calculateWidthToQuantityhRatio()
+        if let widthToQuantityhRatio {
+            return widthToQuantityhRatio * Multipliers.blinkingDodeRadius
         }
         return nil
     }

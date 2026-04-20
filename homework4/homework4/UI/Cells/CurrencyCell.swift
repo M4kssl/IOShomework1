@@ -43,6 +43,8 @@ final class CurrencyCell: UICollectionViewCell {
         delegate = nil
         contentView.layer.borderColor = UIColor.black.cgColor
         currencyDataLabel.textColor = .black
+        contentView.backgroundColor = .white
+        transform = CGAffineTransform(scaleX: 1, y: 1)
     }
 }
 
@@ -54,8 +56,7 @@ private extension CurrencyCell {
         currencyDataLabel.sizeToFit()
         starImageView.image = getStarImage()
         if displayedCurrency?.isChosen ?? false {
-            contentView.layer.borderColor = UIColor.gray.cgColor
-            currencyDataLabel.textColor = .gray
+            self.contentView.backgroundColor = .systemGreen
         }
     }
     

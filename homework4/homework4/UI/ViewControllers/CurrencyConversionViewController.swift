@@ -91,6 +91,7 @@ private extension CurrencyConversionViewController {
             currenciesToChoose[index].currencyText = currencyDataGenerator.chosenCurrencies[index].stringToDisplay
         }
         currencyCollectionView.reloadData()
+        currencyCollectionView.layoutIfNeeded()
         updateConversionResult()
         if let currencyToReselectIndex {
             currenciesToChoose[currencyToReselectIndex].isChosen = true
@@ -385,7 +386,6 @@ private extension CurrencyConversionViewController {
     }
     
     func initTimer() {
-        
         timer = Timer.scheduledTimer(
             timeInterval: DefaultValues.timerTimeInterval,
             target: self,
@@ -449,14 +449,45 @@ private extension CurrencyConversionViewController {
     }
 }
 
+// MARK: - Animations
+private extension CurrencyConversionViewController {
+    func aninmateCellSelection(at indexPath: IndexPath) {
+        currencyCollectionView.scrollToItem(at: indexPath, at: .centeredVertically, animated: false)
+        
+        if let cell = currencyCollectionView.cellForItem(at: indexPath) as? CurrencyCell {
+            UIView.animate(
+                withDuration: 0.05,
+                delay: 0,
+                options: [ .curveEaseInOut],
+                animations: {
+                    cell.contentView.backgroundColor = .systemGreen
+                    cell.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+                },
+                completion: { _ in
+                    UIView.animate(
+                        withDuration: 0.05,
+                        delay: 0,
+                        options: [ .curveEaseInOut],
+                        animations: {
+                            cell.transform = CGAffineTransform(scaleX: 1, y: 1)
+                        }
+                    )
+                }
+            )
+        }
+    }
+}
+
 // MARK: - CurrencyDelegatePrtocol Implementation
 extension CurrencyConversionViewController: CurrencyDelegatePrtocol {
-    func currencyChosen(_ currency: RandomlyGeneratedCurrency) {
+    func currencyChosen(from currencies: [RandomlyGeneratedCurrency], at indexPath: IndexPath) {
+        let currency = currencies[indexPath.row]
         if let selectedCurrencyToChooseIndex, !currency.isChosen {
             deselectAllCurrenciesToChoose()
             currencyDataGenerator.chooseCurrency(currency: currency, chosenCurrenciesIndex: selectedCurrencyToChooseIndex)
             currencyConversionDelegate?.currencyChosen(chosenCurrencies: currencyDataGenerator.chosenCurrencies)
             updateViewFromModel()
+            aninmateCellSelection(at: indexPath)
         }
     }
     
