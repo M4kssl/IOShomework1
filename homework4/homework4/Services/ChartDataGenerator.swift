@@ -14,7 +14,7 @@ protocol ChartDataGeneratorProtocol {
     func addRandomizedCandlestick()
 }
 
-final class ChartDataGenerator {
+final class ChartDataGenerator: ChartDataGeneratorProtocol {
     private(set) var candlesticks = [Candlestick]()
     
     func generateCandles(amountOfCandles: Int) {
