@@ -78,7 +78,7 @@ private extension FavoriteFilterSwitch {
     }
 }
 
-//MARK: - Action Handlers
+// MARK: - Action Handlers
 @objc
 private extension FavoriteFilterSwitch {
     @objc

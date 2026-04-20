@@ -423,7 +423,7 @@ private extension BotViewController {
     }
 }
 
-// MARK: UITableViewDataSource Implementation
+// MARK: - UITableViewDataSource Implementation
 extension BotViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return traderBot.getDealHistory().count

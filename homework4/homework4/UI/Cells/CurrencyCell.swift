@@ -138,7 +138,7 @@ private extension CurrencyCell {
     }
 }
 
-// MARK: Drawing Star
+// MARK: - Drawing Star
 private extension CurrencyCell {
     func drawStar(in rect: CGRect, context: CGContext) {
         let center = CGPoint(x: rect.midX, y: rect.midY)
