@@ -162,12 +162,12 @@ private extension CurrencyCell {
             }
         }
         path.close()
-        UIColor(red: 0.8, green: 0.6, blue: .zero, alpha: 1.0).setStroke()
+        StarColor.outline.setStroke()
         path.lineWidth = 3
         path.stroke()
        
         if displayedCurrency?.isFavorited ?? false {
-            UIColor(red: 1.0, green: 0.84, blue: .zero, alpha: 1.0).setFill()
+            StarColor.fill.setFill()
             path.fill()
         }
     }
@@ -187,11 +187,16 @@ private extension CurrencyCell {
 
 // MARK: - Constants
 private extension CurrencyCell {
-    struct StarSize {
-        static let width = CGFloat(30)
-        static let height = CGFloat(30)
-        static let renderWidth = CGFloat(120)
-        static let renderHeight = CGFloat(120)
+    enum StarSize {
+        static let width: CGFloat = 30
+        static let height: CGFloat = 30
+        static let renderWidth: CGFloat = 120
+        static let renderHeight: CGFloat = 120
+    }
+    
+    enum StarColor {
+        static let outline = UIColor(red: 0.8, green: 0.6, blue: .zero, alpha: 1.0)
+        static let fill = UIColor(red: 1.0, green: 0.84, blue: .zero, alpha: 1.0)
     }
 }
 

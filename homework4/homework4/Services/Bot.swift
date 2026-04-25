@@ -17,8 +17,10 @@ struct Deal {
     let id: UUID
     let action: Action
     let currency: RandomlyGeneratedCurrency
+    let tradedFor: RandomlyGeneratedCurrency
     let result: String?
     let timestamp: Date
+    let coversionRate: Double
 }
 
 struct RequestForMarket {
@@ -28,125 +30,54 @@ struct RequestForMarket {
 }
 
 protocol BotProtocol {
-    var balance: Double { get }
-    var decisionsMade: Int { get }
-    var currenciesOnHand: [UUID : RandomlyGeneratedCurrency] { get }
+    var name: String { get }
     var chosenCurrencies: [RandomlyGeneratedCurrency] { get }
-    func decideOnAction(for currency: RandomlyGeneratedCurrency) -> Action
-    func formARequestForMarket(toMake action: Action, for currency: RandomlyGeneratedCurrency) -> RequestForMarket
-    func processMarketResponse(_ response: MarketResponse)
+    var profit: Double { get }
+    
+    func runOperation()
     func getLastDealForCurrency(withIdentifier id: UUID) -> Deal?
     func getDealHistory() -> [Deal]
     func setCurrencyAsChosen(currency: RandomlyGeneratedCurrency, at index: Int)
     func resetTradingHistory()
+    func calculateProfitForAPeriod(startDate: Date, endDate: Date) -> Double
+    func updateChosenCurrencies(from currencies: [UUID : RandomlyGeneratedCurrency])
 }
 
 final class Bot: BotProtocol {
     private var dealHistory: [Deal] = []
     
-    private(set) var balance: Double
-    private(set) var currenciesOnHand = [UUID : RandomlyGeneratedCurrency]()
     private(set) var decisionsMade: Int = 0
     private(set) var chosenCurrencies = [RandomlyGeneratedCurrency]()
+    private(set) var name: String = ""
+    private(set) var profit: Double = 0
     
+    let wallet: WalletProtocol
+    let walletHandler: WalletHandlerProtocol
     let historyHandler: DealHistoryHandlerProtocol
     
     init(
         currencies: [RandomlyGeneratedCurrency],
         historyHandler: DealHistoryHandlerProtocol,
-        amountOfChosenCurrencies: Int
+        wallet: WalletProtocol,
+        walletHandler: WalletHandlerProtocol,
+        amountOfChosenCurrencies: Int,
+        namePostfix: String
     ) {
-        balance = DefaultValues.initialBalance
         self.historyHandler = historyHandler
-        
-        for currency in currencies {
-            currenciesOnHand[currency.id] = RandomlyGeneratedCurrency(
-                id: currency.id,
-                name: currency.name,
-                value: .zero,
-                quantity: .zero,
-                type: currency.type,
-                isChosen: currency.isChosen,
-                isFavorited: currency.isFavorited
-            )
-        }
+        var allCurrencies = currencies
         for _ in .zero..<amountOfChosenCurrencies {
-            chosenCurrencies.append(RandomlyGeneratedCurrency.generatePlaceholderCurrency())
+            let randomIndex = Int.random(in: .zero..<allCurrencies.endIndex)
+            chosenCurrencies.append(allCurrencies[randomIndex])
+            allCurrencies.remove(at: randomIndex)
         }
+        name = "\(chosenCurrencies[0].name)_\(chosenCurrencies[1].name)_\(namePostfix)"
+        self.wallet = wallet
+        self.walletHandler = walletHandler
     }
     
-    func decideOnAction(for currency: RandomlyGeneratedCurrency) -> Action {
-        var decidedAction = Action.ignore
-        let key = currency.id
-        if let currencyOnHand = currenciesOnHand[key] {
-            if currencyOnHand.quantity > .zero, currencyOnHand.value < currency.value {
-                decidedAction = .sell
-            } else if currencyOnHand.quantity == .zero, currency.value <= balance, currency.value < DefaultValues.maxValueToPurchase {
-                decidedAction = .purchase
-            }
-        }
-        decisionsMade += 1
-        return decidedAction
-    }
-    
-    func formARequestForMarket(toMake action: Action, for currency:  RandomlyGeneratedCurrency) -> RequestForMarket {
-        switch action {
-        case .purchase:
-            let quantity = Bot.quantityToBuy(for: currency, balance)
-            return RequestForMarket(action: action, currency: currency, quantity: quantity)
-        case .sell:
-            let key = currency.id
-            if let currencyOnHand = currenciesOnHand[key] {
-                return RequestForMarket(action: action, currency: currency, quantity: currencyOnHand.quantity)
-            } else {
-                return RequestForMarket(action: .ignore, currency: currency, quantity: .zero)
-            }
-        default:
-            return RequestForMarket(action: .ignore, currency: currency, quantity: .zero)
-        }
-    }
-    
-    func processMarketResponse(_ response: MarketResponse) {
-        guard response.status == .success else {
-            return
-        }
-        let key = response.request.currency.id
-        if let currency = currenciesOnHand[key] {
-            var newQuantity: Double = .zero
-            var newValue: Double = .zero
-            switch response.request.action {
-            case .purchase:
-                newQuantity = currency.quantity + response.request.quantity
-                newValue = response.request.currency.value
-                balance -= response.request.quantity * response.request.currency.value
-            case .sell:
-                newQuantity = currency.quantity - response.request.quantity
-                balance += response.request.quantity * response.request.currency.value
-            default:
-                break
-            }
-            currenciesOnHand[key] = RandomlyGeneratedCurrency(
-                id: currency.id,
-                name: currency.name,
-                value: newValue,
-                quantity: newQuantity,
-                type: currency.type,
-                isChosen: currency.isChosen,
-                isFavorited: currency.isFavorited
-            )
-            registerDeal(for: response.request.currency, action: response.request.action)
-        }
-    }
-    
-    func registerDeal(for currency: RandomlyGeneratedCurrency, action: Action) {
-        let newDeal = Deal(
-            id: UUID(),
-            action: action,
-            currency: currency,
-            result: historyHandler.getDealResult(for: currency, with: action, using: dealHistory),
-            timestamp: Date()
-        )
-        dealHistory.append(newDeal)
+    func runOperation() {
+        let action = decideOnAction()
+        makeAction(action: action)
     }
     
     func getLastDealForCurrency(withIdentifier id: UUID) -> Deal? {
@@ -160,38 +91,77 @@ final class Bot: BotProtocol {
     func setCurrencyAsChosen(currency: RandomlyGeneratedCurrency, at index: Int) {
         if currency.id != UUID.empty {
             chosenCurrencies[index] = currency
-            synchronizeCurrencies()
+        }
+    }
+    
+    func updateChosenCurrencies(from currencies: [UUID : RandomlyGeneratedCurrency]) {
+        for index in chosenCurrencies.indices {
+            if let currentCurrency = currencies[chosenCurrencies[index].id] {
+                chosenCurrencies[index] = currentCurrency
+            }
         }
     }
     
     func resetTradingHistory() {
         dealHistory.removeAll()
-        decisionsMade = 0
+        decisionsMade = .zero
+    }
+    
+    func calculateProfitForAPeriod(startDate: Date = .distantPast, endDate: Date = .distantFuture) -> Double {
+        let activeHistory = historyHandler.getActiveHistoryForAPeriod(
+            beginingDate: startDate,
+            endDate: endDate,
+            histoy: dealHistory
+        )
+        
+        return historyHandler.calculateProfit(forCurrency: chosenCurrencies[0], history: activeHistory)
     }
 }
 
-// MARK: - Private methods
+// MARK: - Private Methods
 private extension Bot {
-    private static func quantityToBuy(for currency: RandomlyGeneratedCurrency, _ balance: Double) -> Double {
-        let maximumQuantity = balance/currency.value
-        return Double.random(in: 1...maximumQuantity)
+    func decideBasedOnCurrentValues() -> Action {
+        let firstChosenCurrency = chosenCurrencies[0]
+        let secondChosenCurrency = chosenCurrencies[1]
+        
+        let currentConversionRate = Market.conversionRate(fromCurrency: firstChosenCurrency, toCurrency: secondChosenCurrency)
+        
+        if currentConversionRate > 1.2, firstChosenCurrency.value > DefaultValues.minValueToSell{
+            return .sell
+        } else if currentConversionRate < 0.8, firstChosenCurrency.value < DefaultValues.maxValueToPurchase {
+            return .purchase
+        } else {
+            return .ignore
+        }
     }
     
-    func synchronizeCurrencies() {
-        let chosenCurrenciesIndetifiers = getChosenCurrenciesIdentifiers()
-        for key in currenciesOnHand.keys {
-            if let currency = currenciesOnHand[key] {
-                let isChosen = chosenCurrenciesIndetifiers.contains(currency.id)
-                currenciesOnHand[key] = RandomlyGeneratedCurrency(
-                    id: currency.id,
-                    name: currency.name,
-                    value: currency.value,
-                    quantity: currency.quantity,
-                    type: currency.type,
-                    isChosen: isChosen,
-                    isFavorited: currency.isFavorited
-                )
+    func decideBasedOnHistory(firstCurrencyLastDeal: Deal) -> Action {
+        let firstChosenCurrency = chosenCurrencies[0]
+        let secondChosenCurrency = chosenCurrencies[1]
+        
+        switch firstCurrencyLastDeal.action {
+        case .purchase:
+            let currentConversionRate = Market.conversionRate(fromCurrency: firstChosenCurrency, toCurrency: secondChosenCurrency)
+            if currentConversionRate > firstCurrencyLastDeal.coversionRate,
+               firstChosenCurrency.value > firstCurrencyLastDeal.currency.value,
+               firstChosenCurrency.value > DefaultValues.minValueToSell,
+               currentConversionRate > 1.2 {
+                return .sell
+            } else {
+                return .ignore
             }
+        case .sell:
+            let currentConversionRate = Market.conversionRate(fromCurrency: firstChosenCurrency, toCurrency: secondChosenCurrency)
+            if currentConversionRate < firstCurrencyLastDeal.coversionRate,
+                firstChosenCurrency.value < firstCurrencyLastDeal.currency.value,
+                firstChosenCurrency.value < DefaultValues.maxValueToPurchase,
+               currentConversionRate < 0.8 {
+                return .purchase
+            } else {
+                return .ignore
+            }
+        case .ignore:
+           return decideBasedOnCurrentValues()
         }
     }
     
@@ -202,13 +172,86 @@ private extension Bot {
         }
         return identifiers
     }
-
+   
+    func registerDeal(for currency: RandomlyGeneratedCurrency, action: Action, tradedFor: RandomlyGeneratedCurrency) {
+        let newDeal = Deal(
+            id: UUID(),
+            action: action,
+            currency: currency,
+            tradedFor: tradedFor,
+            result: historyHandler.getDealResultString(for: currency, with: action, using: dealHistory),
+            timestamp: .now,
+            coversionRate: Market.conversionRate(fromCurrency: currency, toCurrency: tradedFor)
+        )
+        dealHistory.append(newDeal)
+    }
     
+    func decideOnAction() -> Action {
+        if dealHistory.isEmpty {
+            return decideBasedOnCurrentValues()
+        } else {
+            let activeHistory = historyHandler.getCurrencyHistoryWithotIgnores(for: chosenCurrencies[0], in: dealHistory)
+            let firstCurrencyLastDeal = historyHandler.getLastDealForCurrency(withIndetifier: chosenCurrencies[0].id, in: activeHistory)
+            if let firstCurrencyLastDeal {
+                return decideBasedOnHistory(firstCurrencyLastDeal: firstCurrencyLastDeal)
+            } else {
+                return decideBasedOnCurrentValues()
+            }
+        }
+    }
+    
+    func makeAction(action: Action) {
+        let firstChosenCurrency = chosenCurrencies[0]
+        let secondChosenCurrency = chosenCurrencies[1]
+            
+        do {
+            var firstCurrencyForDealQuantity: Double = 0
+            var secondCurrencyForDealQuantity: Double = 0
+            switch action {
+            case .purchase:
+                let quantityBought = try walletHandler.calcultateQuantityAndPurchaseIfAbleTo(
+                    currencyToBuy: firstChosenCurrency,
+                    currencyToSell: secondChosenCurrency,
+                    quantityToSell: DefaultValues.quanityToSellPerDeal,
+                    wallet: wallet
+                )
+                firstCurrencyForDealQuantity = quantityBought
+                secondCurrencyForDealQuantity = DefaultValues.quanityToSellPerDeal
+                
+            case.sell:
+                let quantityBought = try walletHandler.calcultateQuantityAndPurchaseIfAbleTo(
+                    currencyToBuy: secondChosenCurrency,
+                    currencyToSell: firstChosenCurrency,
+                    quantityToSell: DefaultValues.quanityToSellPerDeal,
+                    wallet: wallet
+                )
+                firstCurrencyForDealQuantity = DefaultValues.quanityToSellPerDeal
+                secondCurrencyForDealQuantity = quantityBought
+            case .ignore:
+                break
+            }
+            
+            let firstCurrencyForDeal = RandomlyGeneratedCurrency.changeQuanityForCurrency(
+                currency: firstChosenCurrency,
+                newQuantity: firstCurrencyForDealQuantity
+            )
+            
+            let secondCurrencyForDeal = RandomlyGeneratedCurrency.changeQuanityForCurrency(
+                currency: secondChosenCurrency,
+                newQuantity: secondCurrencyForDealQuantity
+            )
+            
+            registerDeal(for: firstCurrencyForDeal, action: action, tradedFor:  secondCurrencyForDeal)
+        } catch {
+            registerDeal(for: firstChosenCurrency, action: .ignore, tradedFor:  secondChosenCurrency)
+        }
+    }
 }
 
-extension Bot {
-    struct DefaultValues {
-        static let maxValueToPurchase: Double = 65
-        static let initialBalance: Double = 1000
+private extension Bot {
+    enum DefaultValues {
+        static let maxValueToPurchase: Double = 50
+        static let quanityToSellPerDeal: Double = 10
+        static let minValueToSell: Double = 60
     }
 }

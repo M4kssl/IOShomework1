@@ -401,7 +401,7 @@ private extension LinearChartView {
 
 // MARK: - Constants
 private extension LinearChartView {
-    struct ChartColor {
+    enum ChartColor {
         static let lineColor = UIColor.systemBlue.cgColor
         static let nodeColor = UIColor.systemBlue.cgColor
         static let blinkingNodeColor = UIColor.systemRed.cgColor
@@ -409,7 +409,7 @@ private extension LinearChartView {
         static let selectedNode = UIColor.green.cgColor
     }
     
-    struct Multipliers {
+    enum Multipliers {
         static let graphLineWidth: CGFloat = 0.2
         static let nodeRadius: CGFloat = 0.5
         static let blinkingDodeRadius: CGFloat = 0.75
@@ -417,7 +417,7 @@ private extension LinearChartView {
         static let captonHeight: CGFloat = 0.2
     }
     
-    struct DefaultValues {
+    enum DefaultValues {
         static let gridLineWidth: CGFloat = 0.5
         static let amountOfHorizontalGridLines = 8
         static let amountOfVerticalGridLines = 6

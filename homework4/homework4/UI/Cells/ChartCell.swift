@@ -265,7 +265,7 @@ extension ChartCell {
 
 // MARK: - Constants
 private extension ChartCell {
-    struct Colors {
+    enum Colors {
         static let priceUpColor = UIColor.systemGreen
         static let priceDownColor = UIColor.systemRed
     }

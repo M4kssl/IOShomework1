@@ -59,6 +59,32 @@ extension RandomlyGeneratedCurrency {
     }
 }
 
+extension RandomlyGeneratedCurrency {
+    static func changeQuanityForCurrency(currency: RandomlyGeneratedCurrency, newQuantity: Double) -> RandomlyGeneratedCurrency {
+        return RandomlyGeneratedCurrency(
+            id: currency.id,
+            name: currency.name,
+            value: currency.value,
+            quantity: newQuantity,
+            type: currency.type,
+            isChosen: currency.isChosen,
+            isFavorited: currency.isFavorited
+        )
+    }
+    
+    static func changeValueForCurrency(currency: RandomlyGeneratedCurrency, newValue: Double) -> RandomlyGeneratedCurrency {
+        return RandomlyGeneratedCurrency(
+            id: currency.id,
+            name: currency.name,
+            value: newValue,
+            quantity: currency.quantity,
+            type: currency.type,
+            isChosen: currency.isChosen,
+            isFavorited: currency.isFavorited
+        )
+    }
+}
+
 extension UUID {
     static let empty = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
 }

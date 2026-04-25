@@ -291,7 +291,7 @@ extension CurrencyChartViewController: LinearChartDelegate {
 
 // MARK: - Constants
 private extension CurrencyChartViewController {
-    struct DefaultValues {
+    enum DefaultValues {
         static let amountOfCandlesticks = 25
         static let recommendationText = "Choose candlestick to see recommendation"
         static let candlestickWidthToChartWidthRatio: CGFloat = 0.04
