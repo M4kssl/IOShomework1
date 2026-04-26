@@ -9,13 +9,63 @@ import UIKit
 
 final class BotViewController: UIViewController {
     private lazy var traderBot = Bot(
-        currencies: market.getAllCurrencies(),
+        currencies: market.getArrayOfCurrencies(),
         historyHandler: botHistoryHandler,
-        amountOfChosenCurrencies: DefaultValues.amountOfCurrenciesToChoose
+        wallet: wallet,
+        walletHandler: walletHandler,
+        amountOfChosenCurrencies: DefaultValues.amountOfCurrenciesToChoose,
+        namePostfix: "MAIN"
+    )
+    
+    private lazy var botDave = Bot(
+        currencies: market.getArrayOfCurrencies(),
+        historyHandler: botHistoryHandler,
+        wallet: wallet,
+        walletHandler: walletHandler,
+        amountOfChosenCurrencies: DefaultValues.amountOfCurrenciesToChoose,
+        namePostfix: "Dave"
+    )
+    
+    private lazy var botJerry = Bot(
+        currencies: market.getArrayOfCurrencies(),
+        historyHandler: botHistoryHandler,
+        wallet: wallet,
+        walletHandler: walletHandler,
+        amountOfChosenCurrencies: DefaultValues.amountOfCurrenciesToChoose,
+        namePostfix: "Jerry"
+    )
+    
+    private lazy var botAndy = Bot(
+        currencies: market.getArrayOfCurrencies(),
+        historyHandler: botHistoryHandler,
+        wallet: wallet,
+        walletHandler: walletHandler,
+        amountOfChosenCurrencies: DefaultValues.amountOfCurrenciesToChoose,
+        namePostfix: "Andy"
+    )
+    private lazy var botDaniel = Bot(
+        currencies: market.getArrayOfCurrencies(),
+        historyHandler: botHistoryHandler,
+        wallet: wallet,
+        walletHandler: walletHandler,
+        amountOfChosenCurrencies: DefaultValues.amountOfCurrenciesToChoose,
+        namePostfix: "Daniel"
+    )
+    
+    private lazy var botSam = Bot(
+        currencies: market.getArrayOfCurrencies(),
+        historyHandler: botHistoryHandler,
+        wallet: wallet,
+        walletHandler: walletHandler,
+        amountOfChosenCurrencies: DefaultValues.amountOfCurrenciesToChoose,
+        namePostfix: "Sam"
     )
     
     private lazy var botHistoryHandler = BotHistoryHandler()
+    private lazy var wallet = Wallet(currencies: market.getArrayOfCurrencies())
+    private lazy var walletHandler = WalletHandler()
     
+    private let botsQueue = DispatchQueue(label: "botsQueue", attributes: .concurrent)
     private let runButton = UIButton()
     private let openChartButton = UIButton()
     private let phoneImage = UIImage()
@@ -24,10 +74,13 @@ final class BotViewController: UIViewController {
     private let customerSupportView = SupportInformationView()
     private let initialInfoLabel = UILabel()
     private let dealHistoryTableView = UITableView()
+    private let commonDealHistoryTableView = UITableView()
     private let currencyToChooseStackView = UIStackView()
     private let resetBarButton = UIBarButtonItem()
     private let chooeseRandomCurrencyBarButton = UIBarButtonItem()
+    private let openWalletBarButton = UIBarButtonItem()
     
+    private var commonHistory = [DayResult]()
     private var market = Market(amountOfCurrencies: DefaultValues.currenciesToGenerate)
     private var currenciesToChoose = [CurrencyToChooseView]()
     
@@ -50,6 +103,7 @@ private extension BotViewController {
         addInitialLabel()
         addRunButton()
         addDealHistoryTableView()
+        addCommonDealHistoryTableView()
         addViewWithSubview()
         addCustomerSupportView()
         addCurrenciesToChooseStackView()
@@ -68,12 +122,14 @@ private extension BotViewController {
         setupInitialLabel()
         setupRunButton()
         setupDealHistoryTableView()
+        setupCommonDealHistoryTableView()
         setupSuperviewForTitleLabel()
         setupTitleLabel()
         setupCurrenciesToChooseStackView()
         setupCurrenciesToChoose()
         setupResetBarButton()
         setupChooseRandomCurrencyBarButton()
+        setupOpenWalletBarButton()
         setupNavigationItem()
         setupOpenChartButton()
     }
@@ -94,9 +150,16 @@ private extension BotViewController {
         initialInfoLabel.sizeToFit()
     }
     
+    func setupOpenWalletBarButton() {
+        openWalletBarButton.title = DefaultTexts.resetBarButton
+        openWalletBarButton.target = self
+        openWalletBarButton.image = UIImage(systemName: "wallet.bifold")
+        openWalletBarButton.action = #selector(handleOpenWalletBarButton)
+    }
+    
     func setupNavigationItem() {
         navigationItem.leftBarButtonItem = resetBarButton
-        navigationItem.rightBarButtonItem = chooeseRandomCurrencyBarButton
+        navigationItem.rightBarButtonItems = [chooeseRandomCurrencyBarButton, openWalletBarButton]
     }
     
     func setupResetBarButton() {
@@ -126,6 +189,13 @@ private extension BotViewController {
         dealHistoryTableView.dataSource = self
         dealHistoryTableView.alpha = .zero
         dealHistoryTableView.layer.borderWidth = BorderWidth.thin
+    }
+    
+    func setupCommonDealHistoryTableView() {
+        commonDealHistoryTableView.register(CommonHistoryCell.self, forCellReuseIdentifier: CommonHistoryCell.identifier)
+        commonDealHistoryTableView.dataSource = self
+        commonDealHistoryTableView.alpha = .zero
+        commonDealHistoryTableView.layer.borderWidth = BorderWidth.thin
     }
     
     func setupSuperviewForTitleLabel() {
@@ -197,6 +267,10 @@ private extension BotViewController {
         view.addSubview(dealHistoryTableView)
     }
     
+    func addCommonDealHistoryTableView() {
+        view.addSubview(commonDealHistoryTableView)
+    }
+    
     // MARK: - Constraints
     func setConstraints() {
         setRunButtonConstraints()
@@ -205,6 +279,7 @@ private extension BotViewController {
         setInitialLabelConstraints()
         setCustomerSupportViewConstraints()
         setDealHistoryTableViewConstraints()
+        setCommonDealHistoryTableViewConstraints()
         setCurrenciesToChooseStackViewConstraints()
         setOpenChartButtonConstraints()
     }
@@ -307,6 +382,28 @@ private extension BotViewController {
         ])
     }
     
+    func setCommonDealHistoryTableViewConstraints() {
+        commonDealHistoryTableView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            commonDealHistoryTableView.bottomAnchor.constraint(
+                equalTo: runButton.topAnchor,
+                constant: -ConstraintSpacing.standard
+            ),
+            commonDealHistoryTableView.topAnchor.constraint(
+                lessThanOrEqualTo: customerSupportView.bottomAnchor,
+                constant: ConstraintSpacing.standard
+            ),
+            commonDealHistoryTableView.leadingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.leadingAnchor,
+                constant: ConstraintSpacing.standard
+            ),
+            commonDealHistoryTableView.trailingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.trailingAnchor,
+                constant: -ConstraintSpacing.standard
+            )
+        ])
+    }
+    
     func setCurrenciesToChooseStackViewConstraints() {
         currencyToChooseStackView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -324,7 +421,22 @@ private extension BotViewController {
             )
         ])
     }
- 
+    
+    func botLongExecution(for bot: Bot) {
+        for day in .zero..<BotExecutionConfiguration.daysToRun {
+            let startOfTheDay: Date = .now
+            for _ in .zero..<Int.random(in: BotExecutionConfiguration.minOperationsPerDay...BotExecutionConfiguration.maxOperationsPerDay) {
+                market.updateCurrenciesValues()
+                let marketCurrencies = market.getCurrenciesSnapshot()
+                bot.updateChosenCurrencies(from: marketCurrencies)
+                bot.runOperation()
+            }
+            let profit = bot.calculateProfitForAPeriod(startDate: startOfTheDay)
+            let dayResult = DayResult(day: day, botName: bot.name, income: profit)
+            commonHistory.append(dayResult)
+        }
+    }
+    
     func textForCurrencylabel(currency: RandomlyGeneratedCurrency) -> String {
         return "\(currency.name.uppercased()) - \(currency.value.stringWithTwoDecimalPlaces)"
     }
@@ -332,10 +444,13 @@ private extension BotViewController {
     func updateViewFromModel() {
         dealHistoryTableView.reloadData()
         
-        if traderBot.decisionsMade > .zero, dealHistoryTableView.alpha == .zero {
-            crossDissolveViews(form: initialInfoLabel, to: dealHistoryTableView)
-        } else if traderBot.decisionsMade == .zero, dealHistoryTableView.alpha > .zero {
-            crossDissolveViews(form: dealHistoryTableView, to: initialInfoLabel)
+        commonHistory = commonHistory.sorted { $0.day < $1.day }
+        commonDealHistoryTableView.reloadData()
+        
+        if !commonHistory.isEmpty, commonDealHistoryTableView.alpha == .zero {
+            crossDissolveViews(form: initialInfoLabel, to: commonDealHistoryTableView)
+        } else if commonHistory.isEmpty, commonDealHistoryTableView.alpha > .zero {
+            crossDissolveViews(form: commonDealHistoryTableView, to: initialInfoLabel)
         }
         for index in traderBot.chosenCurrencies.indices {
             currenciesToChoose[index].currencyText = traderBot.chosenCurrencies[index].stringToDisplay
@@ -351,14 +466,20 @@ private extension BotViewController {
     
     @objc
     func runButtonTapped() {
-        market.updateCurrenciesValues()
-        for currency in market.currencies.values {
-            let action = traderBot.decideOnAction(for: currency)
-            let request = traderBot.formARequestForMarket(toMake: action, for: currency)
-            let response = market.processRequestAndFormAResponse(request)
-            traderBot.processMarketResponse(response)
+        let group = DispatchGroup()
+        let bots = [traderBot, botDave, botJerry, botAndy, botDaniel, botSam]
+        
+        for bot in bots {
+            group.enter()
+            botsQueue.async { [weak self] in
+                self?.botLongExecution(for: bot)
+                group.leave()
+            }
         }
-        updateViewFromModel()
+        
+        group.notify(queue: .main) { [weak self] in
+            self?.updateViewFromModel()
+        }
     }
     
     @objc
@@ -374,7 +495,7 @@ private extension BotViewController {
     
     @objc
     func handleChooseRandomCurrencyTap() {
-        var allCurrencies = market.getAllCurrencies()
+        var allCurrencies = market.getArrayOfCurrencies()
         for index in traderBot.chosenCurrencies.indices {
             if !allCurrencies.isEmpty {
                 let randomIndex = Int.random(in: .zero..<allCurrencies.endIndex)
@@ -389,6 +510,11 @@ private extension BotViewController {
     @objc
     func handleOpenChartButtonTap() {
         routeToChart()
+    }
+    
+    @objc
+    func handleOpenWalletBarButton() {
+        routeToWallet()
     }
     
     func centeredAttributedString(_ string: String, fontSize: CGFloat) -> NSAttributedString {
@@ -413,9 +539,12 @@ private extension BotViewController {
     
     func resetBot(chosenCurrencies: [RandomlyGeneratedCurrency]) {
         traderBot = Bot(
-            currencies: market.getAllCurrencies(),
+            currencies: market.getArrayOfCurrencies(),
             historyHandler: botHistoryHandler,
-            amountOfChosenCurrencies: DefaultValues.amountOfCurrenciesToChoose
+            wallet: wallet,
+            walletHandler: walletHandler,
+            amountOfChosenCurrencies: DefaultValues.amountOfCurrenciesToChoose,
+            namePostfix: "MAIN"
         )
         for index in chosenCurrencies.indices {
             traderBot.setCurrencyAsChosen(currency: chosenCurrencies[index], at: index)
@@ -426,13 +555,23 @@ private extension BotViewController {
 // MARK: - UITableViewDataSource Implementation
 extension BotViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return traderBot.getDealHistory().count
+        if tableView == dealHistoryTableView {
+            return traderBot.getDealHistory().count
+        } else {
+            return commonHistory.count
+        }
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: DealCell.identifier) as? DealCell
-        cell?.displayedDeal = traderBot.getDealHistory()[indexPath.row]
-        return cell ?? UITableViewCell()
+        if tableView == dealHistoryTableView {
+            let cell = tableView.dequeueReusableCell(withIdentifier: DealCell.identifier) as? DealCell
+            cell?.displayedDeal = traderBot.getDealHistory()[indexPath.row]
+            return cell ?? UITableViewCell()
+        } else {
+            let cell = tableView.dequeueReusableCell(withIdentifier: CommonHistoryCell.identifier) as? CommonHistoryCell
+            cell?.displayedResult = commonHistory[indexPath.row]
+            return cell ?? UITableViewCell()
+        }
     }
 }
 
@@ -462,7 +601,7 @@ private extension BotViewController {
     func routeToCurrencyConversion() {
         let conversionViewController = CurrencyConversionViewController()
         conversionViewController.chosenCurrencies = traderBot.chosenCurrencies
-        conversionViewController.currenciesToDisplay = market.getAllCurrencies()
+        conversionViewController.currenciesToDisplay = market.getArrayOfCurrencies()
         conversionViewController.currencyConversionDelegate = self
         conversionViewController.title = "All currencies"
         navigationController?.pushViewController(conversionViewController, animated: true)
@@ -471,7 +610,7 @@ private extension BotViewController {
     func routeToFavoriteCurrencyConversion() {
         let conversionViewController = FavoriteCurrenciesViewController()
         conversionViewController.chosenCurrencies = traderBot.chosenCurrencies
-        conversionViewController.currenciesToDisplay = market.getAllCurrencies()
+        conversionViewController.currenciesToDisplay = market.getArrayOfCurrencies()
         conversionViewController.favoriteCurrenciesDelegate = self
         present(conversionViewController, animated: true)
     }
@@ -479,24 +618,39 @@ private extension BotViewController {
         let chartViewController = CurrencyChartViewController()
         present(chartViewController, animated: true)
     }
+    
+    func routeToWallet() {
+        let walletViewController = WalletViewController(
+            walletCurrencies: wallet.getCurrenciesOnHandSnapshot(),
+            marketCurrencies: market.getArrayOfCurrencies()
+        )
+        present(walletViewController, animated: true)
+    }
+    
 }
 
 // MARK: - Constants
 private extension BotViewController {
-    struct DefaultValues {
+    enum DefaultValues {
         static let currenciesToGenerate = 5
         static let amountOfCurrenciesToChoose = 2
     }
     
-    struct DefaultSizes {
-        static let initialLabelFontSize = CGFloat(50)
-        static let titleLabelFontSize = CGFloat(25)
-        static let maximumRunButtonHeight = CGFloat(30)
-        static let maximumOpenChartButtonHeight = CGFloat(30)
-        static let maximumTitleSuperviewHeight = CGFloat(40)
+    enum BotExecutionConfiguration {
+        static let minOperationsPerDay = 10
+        static let maxOperationsPerDay = 15
+        static let daysToRun = 100
     }
     
-    struct DefaultTexts {
+    enum DefaultSizes {
+        static let initialLabelFontSize: CGFloat = 50
+        static let titleLabelFontSize: CGFloat = 25
+        static let maximumRunButtonHeight: CGFloat = 30
+        static let maximumOpenChartButtonHeight: CGFloat = 30
+        static let maximumTitleSuperviewHeight: CGFloat = 40
+    }
+    
+    enum DefaultTexts {
         static let runButtonText = "Run Bot"
         static let initialInfoLabel = "No data"
         static let resetBarButton = "Reset"

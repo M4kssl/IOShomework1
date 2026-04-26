@@ -84,7 +84,7 @@ private extension SupportInformationView {
 
 // MARK: - Constants
 private extension SupportInformationView {
-    struct defaultTexts {
+    enum defaultTexts {
         static let informationText = "You can call our customer support:\n +123456789"
         static let imageName = "phone"
     }

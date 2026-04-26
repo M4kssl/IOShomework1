@@ -12,7 +12,6 @@ import UIKit
 
 final class EmptyCell: UICollectionViewCell {
     private let noDataLabel = UILabel()
-    private let noDataLabelText = "No suitable currencies"
     
     override init(frame: CGRect) {
         super.init(frame: .zero)
@@ -38,7 +37,7 @@ private extension EmptyCell {
     
     func setupNoDataLabel() {
         noDataLabel.font = AppFonts.body
-        noDataLabel.text = noDataLabelText
+        noDataLabel.text = Texts.noDataLabelText
         noDataLabel.numberOfLines = .zero
     }
     
@@ -64,4 +63,11 @@ private extension EmptyCell {
 // MARK: - Identifier
 extension EmptyCell {
     static let identifier = "EmptyCell"
+}
+
+// MARK: - Constants
+private extension EmptyCell {
+    enum Texts {
+        static let noDataLabelText = "No suitable currencies"
+    }
 }

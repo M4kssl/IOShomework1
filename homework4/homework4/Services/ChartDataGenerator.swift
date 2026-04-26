@@ -83,7 +83,7 @@ final class ChartDataGenerator: ChartDataGeneratorProtocol {
 
 // MARK: - Constants
 private extension ChartDataGenerator {
-    struct DefaultValues {
+    enum DefaultValues {
         static let startingPrice: Double = 1000
         static let оpenPriceDeviation: Double = 1
         static let bodyDeviationRange: ClosedRange<Double> = 3...20

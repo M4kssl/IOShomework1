@@ -11,8 +11,10 @@ protocol MarketProtocol {
     var currencies: [UUID : RandomlyGeneratedCurrency] { get }
     func updateCurrenciesValues()
     func processRequestAndFormAResponse(_ request: RequestForMarket) -> MarketResponse
-    func getAllCurrencies() -> [RandomlyGeneratedCurrency]
+    func getArrayOfCurrencies() -> [RandomlyGeneratedCurrency]
     func updateCurrencies(with currencies: [RandomlyGeneratedCurrency])
+    func getCurrenciesSnapshot() -> [UUID : RandomlyGeneratedCurrency]
+    static func conversionRate(fromCurrency: RandomlyGeneratedCurrency, toCurrency: RandomlyGeneratedCurrency) -> Double
 }
 
 struct MarketResponse {
@@ -23,6 +25,8 @@ struct MarketResponse {
 
 final class Market: MarketProtocol {
     private(set) var currencies = [UUID : RandomlyGeneratedCurrency]()
+    
+    private let lock = NSLock()
     
     init(amountOfCurrencies: Int) {
         let currencyNames = RandomlyGeneratedCurrency.generateRandomNames(quantityOfNames: amountOfCurrencies)
@@ -41,6 +45,7 @@ final class Market: MarketProtocol {
     }
     
     func updateCurrenciesValues() {
+        lock.lock()
         for key in currencies.keys {
             if let currency = currencies[key] {
                 let newValue = Double.random(in: DefaultValues.minimumCurrencyValue...DefaultValues.maximumCurrencyValue)
@@ -55,6 +60,7 @@ final class Market: MarketProtocol {
                 )
             }
         }
+        lock.unlock()
     }
     
     func processRequestAndFormAResponse(_ request: RequestForMarket) -> MarketResponse {
@@ -98,22 +104,36 @@ final class Market: MarketProtocol {
         return MarketResponse(request: request, status: .failure, messege: "Something went wrong")
     }
     
-    func getAllCurrencies() -> [RandomlyGeneratedCurrency] {
+    func getArrayOfCurrencies() -> [RandomlyGeneratedCurrency] {
+        lock.lock()
+        defer { lock.unlock() }
         return Array(currencies.values)
     }
     
+    func getCurrenciesSnapshot() -> [UUID: RandomlyGeneratedCurrency] {
+        lock.lock()
+        defer { lock.unlock() }
+        return currencies
+    }
+    
     func updateCurrencies(with currencies: [RandomlyGeneratedCurrency]) {
+        lock.lock()
         for currency in currencies {
             self.currencies[currency.id] = currency
         }
+        lock.unlock()
+    }
+    
+    static func conversionRate(fromCurrency: RandomlyGeneratedCurrency, toCurrency: RandomlyGeneratedCurrency) -> Double {
+        return toCurrency.value == .zero ? .zero : fromCurrency.value / toCurrency.value
     }
 }
 
 private extension Market {
-    struct DefaultValues {
+    enum DefaultValues {
         static let minimumCurrencyValue: Double = 10
         static let maximumCurrencyValue: Double = 100
-        static let initialCurrencyQuantity: Double = 80
+        static let initialCurrencyQuantity: Double = 10000
     }
 }
 

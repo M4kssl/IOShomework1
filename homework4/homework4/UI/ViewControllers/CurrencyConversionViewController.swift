@@ -393,6 +393,8 @@ private extension CurrencyConversionViewController {
             userInfo: nil,
             repeats: true
         )
+        guard let timer else { return }
+        RunLoop.main.add(timer, forMode: .common)
     }
     
     func deselectAllCurrenciesToChoose() {
@@ -515,7 +517,7 @@ extension CurrencyConversionViewController: FavoriteFilterSwitchDelegate {
 
 // MARK: - Constants
 private extension CurrencyConversionViewController {
-    struct DefaultValues {
+    enum DefaultValues {
         static let amountOfCurrencuesToGenerate = Int.random(in: 100...200)
         static let amountOfCurrenciesToChoose = 2
         static let layotItemSize = CGSize(width: 150, height: 60)
@@ -526,15 +528,14 @@ private extension CurrencyConversionViewController {
         static let timerTimeInterval = 0.01
     }
     
-    struct Texts {
+    enum Texts {
         static let showAllButtonText = "Show all"
         static let showFiatButtonText = "Show fiat"
         static let showCryptoButtonText = "Show crypto"
     }
 }
 
+// MARK: - String Extention
 private extension String {
-    static var allDecimalCharacters: String {
-        return "0123456789."
-    }
+    static let allDecimalCharacters: String = "0123456789."
 }

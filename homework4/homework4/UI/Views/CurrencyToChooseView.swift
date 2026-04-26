@@ -16,7 +16,7 @@ final class CurrencyToChooseView: UIView {
             updateUI()
         }
     }
-    var currencyText = defaultTexts.emptyLabel {
+    var currencyText = DefaultTexts.emptyLabel {
         didSet {
             isChosen = false
         }
@@ -55,7 +55,7 @@ private extension CurrencyToChooseView {
     
     func setupChosenCurrencyLabel() {
         currencyLabel.font = AppFonts.body
-        currencyLabel.text = defaultTexts.emptyLabel
+        currencyLabel.text = DefaultTexts.emptyLabel
         currencyLabel.layer.cornerRadius = CornerRadius.standard
         currencyLabel.layer.borderWidth = BorderWidth.thin
         currencyLabel.textAlignment = .center
@@ -79,7 +79,7 @@ private extension CurrencyToChooseView {
 
 // MARK: - Constants
 private extension CurrencyToChooseView {
-    struct defaultTexts {
+    enum DefaultTexts {
         static let emptyLabel = "Tap to choose"
     }
 }

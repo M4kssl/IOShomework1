@@ -104,7 +104,7 @@ private extension SplashScreenViewController {
 
 // MARK: Constats
 private extension SplashScreenViewController {
-    struct DefaultValues {
+    enum DefaultValues {
         static let animationDuration: TimeInterval = 0.5
         static let loadingDuration: TimeInterval = 3
     }

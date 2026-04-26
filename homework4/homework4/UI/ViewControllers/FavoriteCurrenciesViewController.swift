@@ -440,7 +440,7 @@ extension FavoriteCurrenciesViewController: UITextFieldDelegate {
 
 // MARK: - Constants
 private extension FavoriteCurrenciesViewController {
-    struct DefaultValues {
+    enum DefaultValues {
         static let amountOfCurrencuesToGenerate = Int.random(in: 100...200)
         static let amountOfCurrenciesToChoose = 2
         static let layotItemSize = CGSize(width: 150, height: 60)
@@ -453,7 +453,7 @@ private extension FavoriteCurrenciesViewController {
         static let tapAnimationDuration = 0.05
     }
     
-    struct Texts {
+    enum Texts {
         static let showAllButtonText = "Show all"
     }
 }
