@@ -11,6 +11,9 @@ protocol WalletProtocol {
     func calculateQuantityToBuy(for currencyToBuy: RandomlyGeneratedCurrency, with currencyToSell: RandomlyGeneratedCurrency, quantityToSell: Double) -> Double
     func confirmPurchase(of currencyToBuy: RandomlyGeneratedCurrency, with currencyToSell: RandomlyGeneratedCurrency, inQuantity quantityToBuy: Double) throws
     func getCurrenciesOnHandSnapshot() -> [UUID : RandomlyGeneratedCurrency]
+    func addCurrency(currency: RandomlyGeneratedCurrency, quantity: Double)
+    func withdrawCurrency(currency: RandomlyGeneratedCurrency, quantity: Double) throws
+
 }
 
 final class Wallet: WalletProtocol {
@@ -22,23 +25,18 @@ final class Wallet: WalletProtocol {
         currenciesOnHand = [UUID : RandomlyGeneratedCurrency]()
         
         for currency in currencies {
-            currenciesOnHand[currency.id] = RandomlyGeneratedCurrency(
-                id: currency.id,
-                name: currency.name,
-                value: currency.value,
-                quantity: DefaultValues.initialCurrencyQuantity,
-                type: currency.type,
-                isChosen: currency.isChosen,
-                isFavorited: currency.isFavorited
+            currenciesOnHand[currency.id] = RandomlyGeneratedCurrency.changeQuanityForCurrency(
+                currency: currency,
+                newQuantity: DefaultValues.initialCurrencyQuantity
             )
         }
     }
     
-    func addCurrency(currency: RandomlyGeneratedCurrency, quantiy: Double) {
+    func addCurrency(currency: RandomlyGeneratedCurrency, quantity: Double) {
         lock.lock()
         defer { lock.unlock() }
         
-        var newQuantity = quantiy
+        var newQuantity = quantity
         
         if let currencyOnHand = currenciesOnHand[currency.id] {
             newQuantity += currencyOnHand.quantity
@@ -72,7 +70,7 @@ final class Wallet: WalletProtocol {
         lock.lock()
         defer { lock.unlock() }
         
-        guard let currencyToSellOnHand = currenciesOnHand[currencyToSell.id] else { throw WalletError.notEnoughtFounds }
+        guard let currencyToSellOnHand = currenciesOnHand[currencyToSell.id] else { return }
         
         let conversionRate = Market.conversionRate(fromCurrency: currencyToSell, toCurrency: currencyToBuy)
         let quantityToSell = quantityToBuy / conversionRate

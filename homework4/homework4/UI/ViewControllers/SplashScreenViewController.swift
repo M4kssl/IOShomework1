@@ -98,7 +98,7 @@ private extension SplashScreenViewController {
     
     @objc
     func handleTimerEnd() {
-        routeToBot()
+        routeToMainScreen()
     }
 }
 
@@ -112,15 +112,31 @@ private extension SplashScreenViewController {
 
 // MARK: Routing
 private extension SplashScreenViewController {
-    func routeToBot() {
-        let botViewController = BotViewController()
+    func routeToMainScreen() {
+        let market = Market(amountOfCurrencies: 5)
+        let marketCurrencies = market.getCurrenciesSnapshot()
+        let marketCurrenciesArray = market.getArrayOfCurrencies()
+        let botViewController = BotViewController(marketCurrencies: marketCurrencies)
+        let tradingViewController = TradingViewController(localCurrencies: marketCurrenciesArray)
         let tabBarController = UITabBarController()
-
-        botViewController.tabBarItem = UITabBarItem(title: "Bot", image: UIImage(systemName: "brain"), tag: 0)
+        
+        botViewController.tabBarItem = UITabBarItem(
+            title: "Bot",
+            image: UIImage(systemName: "brain")
+            , tag: 0
+        )
         botViewController.title = "Bot"
         
+        tradingViewController.tabBarItem = UITabBarItem(
+            title: "Trading",
+            image: UIImage(systemName: "bitcoinsign.bank.building")
+            , tag: 1
+        )
+        tradingViewController.title = "Trading"
+        
         let botNavigationController = UINavigationController(rootViewController: botViewController)
-        tabBarController.viewControllers = [botNavigationController]
+        let tradingNavigationController = UINavigationController(rootViewController: tradingViewController)
+        tabBarController.viewControllers = [botNavigationController, tradingNavigationController]
         
         navigationController?.replaceRootViewController(with: tabBarController)
     }

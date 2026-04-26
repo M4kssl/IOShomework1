@@ -14,6 +14,7 @@ protocol CurrencyConversionDelegate: AnyObject {
 }
 
 final class CurrencyConversionViewController: UIViewController {
+    private let isTimerNeeded: Bool
     private let showAllButton = UIButton()
     private let showFiatButton = UIButton()
     private let showCryptoButton = UIButton()
@@ -24,27 +25,29 @@ final class CurrencyConversionViewController: UIViewController {
     private let conversionResultLabel = UILabel()
     private let conversionStackView = UIStackView()
     private let favoriteFilterSwitch = FavoriteFilterSwitch()
+    private let netwokFilterSwitch = NetwotkCurrenciesSwitch()
     
-    private var currencyDataGenerator = CurrencyDataProvider(
-        aomuntOfCurrencies: DefaultValues.amountOfCurrencuesToGenerate,
-        amountOfChosenCurrencies: DefaultValues.amountOfCurrenciesToChoose
-    )
+    private let currencyDataGenerator: CurrencyDataProvider
     private var timer: Timer?
     private var timerLabelText: String {
         return "Time before update: \(timerTimeLeft.stringWithTwoDecimalPlaces)"
     }
+    
     private var timerTimeLeft: Double = DefaultValues.timerDuration
     private var conversionResultText: String {
         return "\(conversionResult.stringWithTwoDecimalPlaces) \(currencyDataGenerator.chosenCurrencies[DefaultValues.convertToCurrencyIndex].name)"
     }
+    
     private var selectedCurrencyToChooseIndex: Int? {
         return currenciesToChoose.firstIndex(where: { $0.isChosen })
     }
+    
     private var conversionResult: Double = .zero {
         didSet {
             updateConversionResultLabel()
         }
     }
+    
     private var currenciesToChoose = [CurrencyToChooseView]()
     private var layout: UICollectionViewFlowLayout = {
         let layout = UICollectionViewFlowLayout()
@@ -56,20 +59,27 @@ final class CurrencyConversionViewController: UIViewController {
             right: ConstraintSpacing.small)
         return layout
     }()
+    
     private lazy var currencyCollectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
     
-    var currenciesToDisplay: [RandomlyGeneratedCurrency]?
-    var chosenCurrencies: [RandomlyGeneratedCurrency]?
     weak var currencyConversionDelegate: CurrencyConversionDelegate?
+    
+    init(currencies: [RandomlyGeneratedCurrency], chosenCurrencies: [RandomlyGeneratedCurrency], isTimerNeeded: Bool = false) {
+        currencyDataGenerator = CurrencyDataProvider(
+            currencies: currencies,
+            chosenCurrencies: chosenCurrencies
+        )
+        self.isTimerNeeded = isTimerNeeded
+        
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        if let chosenCurrencies, let currencies = currenciesToDisplay {
-            currencyDataGenerator = CurrencyDataProvider(
-                currencies: currencies,
-                chosenCurrencies: chosenCurrencies
-            )
-        }
         setupCurrencyDataGenerator()
         initViews()
         initTimer()
@@ -143,6 +153,7 @@ private extension CurrencyConversionViewController {
         view.addSubview(currencyCollectionView)
         
         view.addSubview(favoriteFilterSwitch)
+        view.addSubview(netwokFilterSwitch)
         
         filterButtonsStackView.addArrangedSubview(showAllButton)
         filterButtonsStackView.addArrangedSubview(showFiatButton)
@@ -169,6 +180,7 @@ private extension CurrencyConversionViewController {
         setupAmountToConvertTextField()
         setupConversionResultLabel()
         setupFavoriteFilterSwitch()
+        setupNetworkFilterSwitch()
     }
     
     func setupCurrenciesToChoose() {
@@ -237,6 +249,7 @@ private extension CurrencyConversionViewController {
     }
     
     func setupTimerLabel() {
+        guard isTimerNeeded else { return }
         timerLabel.font = AppFonts.headline
         timerLabel.text = timerLabelText
     }
@@ -264,6 +277,10 @@ private extension CurrencyConversionViewController {
         favoriteFilterSwitch.delegate = self
     }
     
+    func setupNetworkFilterSwitch() {
+        netwokFilterSwitch.delegate = self
+    }
+    
     func setConstraints() {
         setCurrencyStakViewConstraints()
         setCurrencyCollectionViewConstraints()
@@ -271,6 +288,7 @@ private extension CurrencyConversionViewController {
         setTimerLabelConstraints()
         setConversionStackViewConstraints()
         setFavoriteFilterSwitchConstraints()
+        setNetworkFilterSwitchConstraints()
     }
     
     func setCurrencyStakViewConstraints() {
@@ -303,7 +321,7 @@ private extension CurrencyConversionViewController {
                 constant: -ConstraintSpacing.standard
             ),
             filterButtonsStackView.topAnchor.constraint(
-                equalTo: favoriteFilterSwitch.bottomAnchor,
+                equalTo: netwokFilterSwitch.bottomAnchor,
                 constant: ConstraintSpacing.standard
             )
         ])
@@ -385,7 +403,26 @@ private extension CurrencyConversionViewController {
         ])
     }
     
+    func setNetworkFilterSwitchConstraints() {
+        netwokFilterSwitch.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            netwokFilterSwitch.leadingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.leadingAnchor,
+                constant: ConstraintSpacing.standard
+            ),
+            netwokFilterSwitch.trailingAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.trailingAnchor,
+                constant: -ConstraintSpacing.standard
+            ),
+            netwokFilterSwitch.topAnchor.constraint(
+                equalTo: favoriteFilterSwitch.bottomAnchor,
+                constant: ConstraintSpacing.standard
+            )
+        ])
+    }
+    
     func initTimer() {
+        guard isTimerNeeded else { return }
         timer = Timer.scheduledTimer(
             timeInterval: DefaultValues.timerTimeInterval,
             target: self,
@@ -515,6 +552,14 @@ extension CurrencyConversionViewController: FavoriteFilterSwitchDelegate {
     }
 }
 
+// MARK: - FavoriteFilterSwitchDelegate Implementation
+extension CurrencyConversionViewController: NetwotkCurrenciesSwitchDelegate {
+    func switchNetFilter(isFilterOn: Bool) {
+        currencyDataGenerator.switchFilterByNetwork(isFilterOn: isFilterOn)
+        updateViewFromModel()
+    }
+}
+
 // MARK: - Constants
 private extension CurrencyConversionViewController {
     enum DefaultValues {
@@ -536,6 +581,6 @@ private extension CurrencyConversionViewController {
 }
 
 // MARK: - String Extention
-private extension String {
+extension String {
     static let allDecimalCharacters: String = "0123456789."
 }

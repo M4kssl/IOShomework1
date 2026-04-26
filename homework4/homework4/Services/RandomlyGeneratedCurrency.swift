@@ -20,10 +20,22 @@ struct RandomlyGeneratedCurrency {
     let type: CurrencyType
     let isChosen: Bool
     let isFavorited: Bool
+    let isFromNet: Bool
 }
 
 // MARK: - Static Methods
 extension RandomlyGeneratedCurrency {
+    init(id: UUID, name: String, value: Double, quantity: Double, type: CurrencyType, isFromNet: Bool){
+        self.id = id
+        self.name = name
+        self.value = value
+        self.quantity = quantity
+        self.type = type
+        self.isChosen = false
+        self.isFavorited = false
+        self.isFromNet = isFromNet
+    }
+    
     static func generateRandomNames(quantityOfNames: Int) -> Set<String> {
         let letters = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
         let length = Int.random(in: 2...4)
@@ -47,8 +59,7 @@ extension RandomlyGeneratedCurrency {
             value: 0,
             quantity: 0,
             type: .crypto,
-            isChosen: false,
-            isFavorited: false
+            isFromNet: false
         )
     }
 }
@@ -68,7 +79,8 @@ extension RandomlyGeneratedCurrency {
             quantity: newQuantity,
             type: currency.type,
             isChosen: currency.isChosen,
-            isFavorited: currency.isFavorited
+            isFavorited: currency.isFavorited,
+            isFromNet: currency.isFromNet
         )
     }
     
@@ -80,7 +92,8 @@ extension RandomlyGeneratedCurrency {
             quantity: currency.quantity,
             type: currency.type,
             isChosen: currency.isChosen,
-            isFavorited: currency.isFavorited
+            isFavorited: currency.isFavorited,
+            isFromNet: currency.isFromNet
         )
     }
 }

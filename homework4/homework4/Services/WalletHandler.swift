@@ -9,6 +9,9 @@ import Foundation
 
 protocol WalletHandlerProtocol {
     func calcultateQuantityAndPurchaseIfAbleTo(currencyToBuy: RandomlyGeneratedCurrency, currencyToSell: RandomlyGeneratedCurrency, quantityToSell: Double, wallet: WalletProtocol) throws -> Double
+    func withdrawCurrency(_ currency: RandomlyGeneratedCurrency, quantity: Double, wallet: WalletProtocol) throws
+    func addCurrency(_ currency: RandomlyGeneratedCurrency, quantity: Double, wallet: WalletProtocol)
+
 }
 
 final class WalletHandler: WalletHandlerProtocol {
@@ -26,5 +29,17 @@ final class WalletHandler: WalletHandlerProtocol {
             throw error
         }
         return quantityToBuy
+    }
+    
+    func withdrawCurrency(_ currency: RandomlyGeneratedCurrency, quantity: Double, wallet: WalletProtocol) throws {
+        do {
+            try wallet.withdrawCurrency(currency: currency, quantity: quantity)
+        } catch {
+            throw error
+        }
+    }
+    
+    func addCurrency(_ currency: RandomlyGeneratedCurrency, quantity: Double, wallet: WalletProtocol) {
+        wallet.addCurrency(currency: currency, quantity: quantity)
     }
 }

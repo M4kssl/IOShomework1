@@ -62,7 +62,6 @@ final class BotViewController: UIViewController {
     )
     
     private lazy var botHistoryHandler = BotHistoryHandler()
-    private lazy var wallet = Wallet(currencies: market.getArrayOfCurrencies())
     private lazy var walletHandler = WalletHandler()
     
     private let botsQueue = DispatchQueue(label: "botsQueue", attributes: .concurrent)
@@ -79,10 +78,23 @@ final class BotViewController: UIViewController {
     private let resetBarButton = UIBarButtonItem()
     private let chooeseRandomCurrencyBarButton = UIBarButtonItem()
     private let openWalletBarButton = UIBarButtonItem()
+    private let market: MarketProtocol //= Market(amountOfCurrencies: DefaultValues.currenciesToGenerate)
+    private let wallet: WalletProtocol //Wallet(currencies: market.getArrayOfCurrencies())
+
     
     private var commonHistory = [DayResult]()
-    private var market = Market(amountOfCurrencies: DefaultValues.currenciesToGenerate)
     private var currenciesToChoose = [CurrencyToChooseView]()
+    
+    init(marketCurrencies: [UUID : RandomlyGeneratedCurrency]) {
+        self.market = Market(currencies: marketCurrencies)
+        wallet = Wallet(currencies: market.getArrayOfCurrencies())
+        
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -599,9 +611,12 @@ extension BotViewController: CurrencyConversionDelegate, FavoriteCurrenciesDeleg
 // MARK: - Routing
 private extension BotViewController {
     func routeToCurrencyConversion() {
-        let conversionViewController = CurrencyConversionViewController()
-        conversionViewController.chosenCurrencies = traderBot.chosenCurrencies
-        conversionViewController.currenciesToDisplay = market.getArrayOfCurrencies()
+        let conversionViewController = CurrencyConversionViewController(
+            currencies: market.getArrayOfCurrencies(),
+            chosenCurrencies: traderBot.chosenCurrencies,
+            isTimerNeeded: true
+        )
+        
         conversionViewController.currencyConversionDelegate = self
         conversionViewController.title = "All currencies"
         navigationController?.pushViewController(conversionViewController, animated: true)
@@ -614,6 +629,7 @@ private extension BotViewController {
         conversionViewController.favoriteCurrenciesDelegate = self
         present(conversionViewController, animated: true)
     }
+    
     func routeToChart() {
         let chartViewController = CurrencyChartViewController()
         present(chartViewController, animated: true)
