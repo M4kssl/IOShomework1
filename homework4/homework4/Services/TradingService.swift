@@ -1,0 +1,235 @@
+//
+//  TradingService.swift
+//  homework4
+//
+//  Created by Максим  on 25.04.2026.
+//
+
+import Foundation
+
+protocol TradingServiceProtocol {
+    var wallet: WalletProtocol { get }
+    var localCurrencies: [RandomlyGeneratedCurrency] { get }
+    var networkCurrencies: [RandomlyGeneratedCurrency]? { get }
+    var mode: TradingServiceMode { get }
+    var currencyPair: CurrencyPair { get }
+    var offers: [Offer] { get }
+    
+    func changeMode(newMode: TradingServiceMode)
+    func setNewCurrencyPair(newPair: CurrencyPair)
+    func updateCurrencies(newCurrencies: [RandomlyGeneratedCurrency])
+    func getAllCurrenciesSnapshot() -> [RandomlyGeneratedCurrency]
+    func currentOffersSnapshot() -> [Offer]
+    func makePurchase(_ offer: Offer, quantity: Double)
+    func sortOffersByRate()
+    func setDelegate(_ delegate: TradingServiceDelegate)
+}
+
+protocol TradingServiceDelegate: AnyObject {
+    func handleOperationError(error: Error)
+    func offersUpdated()
+}
+
+enum TradingServiceMode {
+    case Local
+    case Network
+}
+
+final class TradingService: TradingServiceProtocol {
+    private(set) var wallet: any WalletProtocol
+    private(set) var localCurrencies: [RandomlyGeneratedCurrency]
+    private(set) var offers = [Offer]()
+    private(set) var networkCurrencies: [RandomlyGeneratedCurrency]?
+    private(set) var mode: TradingServiceMode
+    private(set) var currencyPair: CurrencyPair {
+        didSet {
+            updateFilteredOffers()
+        }
+    }
+    
+    private var filteredOffers = [Offer]()
+    
+    private let currencyFetcher: CurrencyFetcherProtocol
+    private let walletHandler: WalletHandlerProtocol
+    private let lock = NSLock()
+    
+    weak var delegate: TradingServiceDelegate?
+    
+    init(wallet: any WalletProtocol, walletHandler: any WalletHandlerProtocol, localCurrencies: [RandomlyGeneratedCurrency], currencyFetcher: CurrencyFetcherProtocol) {
+        self.wallet = wallet
+        self.walletHandler = walletHandler
+        self.localCurrencies = localCurrencies
+        self.mode = .Local
+        self.currencyFetcher = currencyFetcher
+        
+        let placeholderCurrency = RandomlyGeneratedCurrency.generatePlaceholderCurrency()
+        self.currencyPair = CurrencyPair(firstCurrency: placeholderCurrency, secondCurrency: placeholderCurrency)
+        
+        generateLocalOffers()
+        updateAvalibleNetworkCurrencies()
+    }
+    
+    func setDelegate(_ delegate: any TradingServiceDelegate) {
+        lock.lock()
+        defer { lock.unlock() }
+        self.delegate = delegate
+    }
+    
+    func changeMode(newMode: TradingServiceMode) {
+        mode = newMode
+        if mode == .Network {
+            updateAvalibleNetworkCurrencies()
+        }
+    }
+    
+    func sortOffersByRate() {
+        lock.lock()
+        defer { lock.unlock() }
+        offers = offers.sorted { $0.exchangeRate >= $1.exchangeRate }
+    }
+    
+    func getAllCurrenciesSnapshot() -> [RandomlyGeneratedCurrency] {
+        return localCurrencies + (networkCurrencies ?? [RandomlyGeneratedCurrency]())
+    }
+    
+    func currentOffersSnapshot() -> [Offer] {
+        var offerArray = offers
+        if !filteredOffers.isEmpty {
+            offerArray = filteredOffers
+        }
+        return offerArray
+    }
+    
+    func updateAvalibleNetworkCurrencies() {
+        currencyFetcher.fetchUiniqueCuurenicesAndPairs(completionHandler: ) { [self] result in
+            switch result {
+            case .success(let fetcherResponse):
+                self.setNewNetworkCurrencyOffers(pairs: fetcherResponse.currencyPairs)
+                self.setNewNetworkCurrencuies(newCurrencies: fetcherResponse.uniqueCurrencies)
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    self.delegate?.handleOperationError(error: error)
+                }
+            }
+        }
+    }
+    
+    func makePurchase(_ offer: Offer, quantity: Double) {
+        let quantityToSell = quantity / offer.exchangeRate
+        do {
+            try wallet.withdrawCurrency(currency: offer.currencyPair.firstCurrency, quantity: quantityToSell)
+        } catch {
+            self.delegate?.handleOperationError(error: error)
+        }
+        
+        wallet.addCurrency(currency: offer.currencyPair.secondCurrency, quantity: quantity)
+        currencyFetcher.sendPurchaseOffer(offer: offer, quantity: quantity) { [self] result in
+            switch result {
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    self.delegate?.handleOperationError(error: error)
+                }
+                self.walletHandler.addCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
+                
+                do {
+                    try self.walletHandler.withdrawCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
+                } catch {
+                    DispatchQueue.main.async {
+                        self.delegate?.handleOperationError(error: error)
+                    }
+                }
+            default:
+                let newFirstCurrencyQuantity = offer.currencyPair.firstCurrency.quantity - quantityToSell
+                let newSecondCurrencyQuantity = offer.currencyPair.secondCurrency.quantity + quantity
+                DispatchQueue.main.async {
+                    self.updateOffer(
+                        offerToUpdate: offer,
+                        newFirstCurrencyQuantity: newFirstCurrencyQuantity,
+                        newSecondCurrencyQuantity: newSecondCurrencyQuantity
+                    )
+                }
+            }
+        }
+    }
+    
+    func updateCurrencies(newCurrencies: [RandomlyGeneratedCurrency]) {
+        let newLocalCurrencies = newCurrencies.filter { !$0.isFromNet }
+        let newNetworkCurrencies = newCurrencies.filter { $0.isFromNet }
+        
+        setNewLocalCurrencuies(newCurrencies: newNetworkCurrencies)
+        setNewNetworkCurrencuies(newCurrencies: newLocalCurrencies)
+    }
+    
+    func setNewCurrencyPair(newPair: CurrencyPair) {
+        lock.lock()
+        defer { lock.unlock() }
+        currencyPair = newPair
+    }
+}
+
+// MARK: - Private Methods
+private extension TradingService {
+    func setNewNetworkCurrencuies(newCurrencies: [RandomlyGeneratedCurrency]) {
+        lock.lock()
+        defer { lock.unlock() }
+        networkCurrencies = newCurrencies
+    }
+    
+    func updateOffer(offerToUpdate offer: Offer, newFirstCurrencyQuantity: Double, newSecondCurrencyQuantity: Double) {
+        lock.lock()
+        defer { lock.unlock() }
+        if let index = offers.firstIndex(where: { $0.id == offer.id }) {
+            let newOffer = Offer.changeQuantityForCurrencies(
+                offer: offer,
+                firstCurrencyQuantity: newFirstCurrencyQuantity,
+                secondCurrencyQuantity: newSecondCurrencyQuantity
+            )
+            offers[index] = newOffer
+        }
+        delegate?.offersUpdated()
+    }
+    
+    func updateFilteredOffers() {
+        var suitableOffers = offers
+        if currencyPair.firstCurrency.id != UUID.empty {
+            suitableOffers = suitableOffers.filter { $0.currencyPair.firstCurrency.id == currencyPair.firstCurrency.id }
+        }
+        if currencyPair.secondCurrency.id != UUID.empty {
+            suitableOffers = suitableOffers.filter { $0.currencyPair.secondCurrency.id == currencyPair.secondCurrency.id }
+        }
+        filteredOffers = suitableOffers
+        delegate?.offersUpdated()
+    }
+    
+    func generateLocalOffers() {
+        lock.lock()
+        defer { lock.unlock() }
+        offers = offers.filter { $0.isNetworkOffer }
+        for firstCurrency in localCurrencies {
+            for secondCurrency in localCurrencies {
+                if firstCurrency.id == secondCurrency.id {
+                    continue
+                }
+                let pair = CurrencyPair(firstCurrency: firstCurrency, secondCurrency: secondCurrency)
+                let offer = Offer(id: UUID(),currencyPair: pair)
+                offers.append(offer)
+            }
+        }
+    }
+    
+    func setNewNetworkCurrencyOffers(pairs: [CurrencyPair]) {
+        lock.lock()
+        defer { lock.unlock() }
+        offers = offers.filter { !$0.isNetworkOffer }
+        for pair in pairs {
+            let offer = Offer(id: UUID(), currencyPair: pair, isNetworkOffer: true)
+            offers.append(offer)
+        }
+    }
+    
+    func setNewLocalCurrencuies(newCurrencies: [RandomlyGeneratedCurrency]) {
+        lock.lock()
+        defer { lock.unlock() }
+        localCurrencies = newCurrencies
+    }
+}

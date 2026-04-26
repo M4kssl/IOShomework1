@@ -457,9 +457,3 @@ private extension FavoriteCurrenciesViewController {
         static let showAllButtonText = "Show all"
     }
 }
-
-private extension String {
-    static var allDecimalCharacters: String {
-        return "0123456789."
-    }
-}

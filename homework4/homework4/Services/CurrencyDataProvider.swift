@@ -24,11 +24,13 @@ protocol CurrencyDataProviderProtocol {
     func clearFilterByType()
     func convertCurrency(atChosenCurrencyIndex fromIndex: Int, toChosenCurrencyIndex toIndex: Int) -> Double
     func switchFilterByFavorite(isFilterOn: Bool)
+    func switchFilterByNetwork(isFilterOn: Bool)
 }
 
 final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
     private var currencyTypeFilteredBy: CurrencyType?
     private var isFilteredByFavorite: Bool = false
+    private var isFilteredByNet: Bool = false
     private(set) var allCurrencies = [RandomlyGeneratedCurrency]()
     private(set) var filteredCurrencies = [RandomlyGeneratedCurrency]()
     private(set) var chosenCurrencies = [RandomlyGeneratedCurrency]() {
@@ -51,7 +53,8 @@ final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
                     quantity: 1,
                     type: CurrencyType.allCases.randomElement() ?? .crypto,
                     isChosen: false,
-                    isFavorited: false
+                    isFavorited: false,
+                    isFromNet: false
                 )
             )
         }
@@ -72,14 +75,7 @@ final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
     
     func generateNewValues() {
         for index in allCurrencies.indices {
-            let currency = RandomlyGeneratedCurrency(
-                id:  allCurrencies[index].id,
-                name: allCurrencies[index].name,
-                value: .random(in: 10...100),
-                quantity: allCurrencies[index].quantity,
-                type: allCurrencies[index].type,
-                isChosen: allCurrencies[index].isChosen,
-                isFavorited: allCurrencies[index].isFavorited
+            let currency = RandomlyGeneratedCurrency.changeQuanityForCurrency(currency: allCurrencies[index], newQuantity: .random(in: 10...100)
             )
             allCurrencies[index] = currency
             if currency.isChosen {
@@ -105,7 +101,8 @@ final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
                 quantity: currency.quantity,
                 type: currency.type,
                 isChosen: true,
-                isFavorited: currency.isFavorited
+                isFavorited: currency.isFavorited,
+                isFromNet: currency.isFavorited
             )
             addCurencyToChosen(currency: chosenCurrency, atIndex: chosenCurrenciesIndex)
         }
@@ -113,18 +110,29 @@ final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
     
     func clearFilterByType() {
         currencyTypeFilteredBy = nil
+        
+        var filteredCurrencies = [RandomlyGeneratedCurrency]()
+        
         if isFilteredByFavorite {
-            filteredCurrencies = allCurrencies.filter { $0.isFavorited }
-        } else {
-            filteredCurrencies.removeAll()
+            filteredCurrencies = filteredCurrencies.filter { $0.isFavorited }
         }
+        
+        if isFilteredByNet {
+            filteredCurrencies = filteredCurrencies.filter { $0.isFromNet }
+        }
+        
+        self.filteredCurrencies = filteredCurrencies
     }
     
     func filterCurrenciesByType(_ currencyType: CurrencyType) {
         currencyTypeFilteredBy = currencyType
         filteredCurrencies = allCurrencies.filter { $0.type == currencyType }
+        
         if isFilteredByFavorite {
             filteredCurrencies = filteredCurrencies.filter { $0.isFavorited }
+        }
+        if isFilteredByNet {
+            filteredCurrencies = filteredCurrencies.filter { $0.isFromNet }
         }
     }
     
@@ -140,6 +148,15 @@ final class CurrencyDataProvider: NSObject, CurrencyDataProviderProtocol {
             turnFavoriteFilterOff()
         }
     }
+    
+    func switchFilterByNetwork(isFilterOn: Bool) {
+        isFilteredByNet = isFilterOn
+        if isFilterOn {
+            turnNetFilterOn()
+        } else {
+            turnNetFilterOff()
+        }
+    }
 }
 
 // MARK: - Private Methods
@@ -149,14 +166,30 @@ private extension CurrencyDataProvider {
     }
     
     func turnFavoriteFilterOn() {
-        if currencyTypeFilteredBy != nil {
+        if currencyTypeFilteredBy != nil || isFilteredByNet {
             filteredCurrencies = filteredCurrencies.filter { $0.isFavorited }
         } else {
             filteredCurrencies = allCurrencies.filter { $0.isFavorited }
         }
     }
     
+    func turnNetFilterOn() {
+        if currencyTypeFilteredBy != nil || isFilteredByFavorite {
+            filteredCurrencies = filteredCurrencies.filter { $0.isFromNet }
+        } else {
+            filteredCurrencies = allCurrencies.filter { $0.isFromNet }
+        }
+    }
+    
     func turnFavoriteFilterOff() {
+        if let currencyTypeFilteredBy {
+            filterCurrenciesByType(currencyTypeFilteredBy)
+        } else {
+            clearFilterByType()
+        }
+    }
+    
+    func turnNetFilterOff() {
         if let currencyTypeFilteredBy {
             filterCurrenciesByType(currencyTypeFilteredBy)
         } else {
@@ -176,13 +209,21 @@ private extension CurrencyDataProvider {
                 type: allCurrencies[index].type,
                 isChosen: isChosen,
                 isFavorited: allCurrencies[index].isFavorited,
-                
+                isFromNet: allCurrencies[index].isFromNet
             )
         }
         
+        var updatedCurrencies = allCurrencies
+        
         if isFilteredByFavorite {
-            filteredCurrencies = allCurrencies.filter { $0.isFavorited }
+            updatedCurrencies = updatedCurrencies.filter { $0.isFavorited }
         }
+        
+        if isFilteredByNet {
+            updatedCurrencies = updatedCurrencies.filter { $0.isFromNet }
+        }
+        
+        filteredCurrencies = updatedCurrencies
         
         if let currencyTypeFilteredBy {
             filterCurrenciesByType(currencyTypeFilteredBy)
@@ -206,7 +247,9 @@ private extension CurrencyDataProvider {
                 quantity: allCurrencies[index].quantity,
                 type: allCurrencies[index].type,
                 isChosen: allCurrencies[index].isChosen,
-                isFavorited: !allCurrencies[index].isFavorited)
+                isFavorited: !allCurrencies[index].isFavorited,
+                isFromNet: allCurrencies[index].isFromNet
+            )
         }
     }
 }
@@ -214,7 +257,7 @@ private extension CurrencyDataProvider {
 extension CurrencyDataProvider: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         var count: Int
-        if isFilteredByFavorite || currencyTypeFilteredBy != nil {
+        if isFilteredByFavorite || currencyTypeFilteredBy != nil || isFilteredByNet {
             count = filteredCurrencies.count
         } else {
             count = allCurrencies.count
@@ -224,7 +267,7 @@ extension CurrencyDataProvider: UICollectionViewDataSource {
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         var arrayToDisplay = [RandomlyGeneratedCurrency]()
-        if isFilteredByFavorite || currencyTypeFilteredBy != nil {
+        if isFilteredByFavorite || currencyTypeFilteredBy != nil || isFilteredByNet {
             arrayToDisplay = filteredCurrencies
         } else {
             arrayToDisplay = allCurrencies
@@ -246,7 +289,7 @@ extension CurrencyDataProvider: UICollectionViewDataSource {
 extension CurrencyDataProvider: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         var arrayToDisplay = [RandomlyGeneratedCurrency]()
-        if isFilteredByFavorite || currencyTypeFilteredBy != nil {
+        if isFilteredByFavorite || currencyTypeFilteredBy != nil || isFilteredByNet {
             arrayToDisplay = filteredCurrencies
         } else {
             arrayToDisplay = allCurrencies

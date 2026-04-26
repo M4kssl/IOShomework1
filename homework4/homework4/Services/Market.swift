@@ -28,6 +28,10 @@ final class Market: MarketProtocol {
     
     private let lock = NSLock()
     
+    init(currencies: [UUID : RandomlyGeneratedCurrency]) {
+        self.currencies = currencies
+    }
+    
     init(amountOfCurrencies: Int) {
         let currencyNames = RandomlyGeneratedCurrency.generateRandomNames(quantityOfNames: amountOfCurrencies)
         for name in currencyNames {
@@ -38,7 +42,8 @@ final class Market: MarketProtocol {
                 quantity: DefaultValues.initialCurrencyQuantity,
                 type: CurrencyType.allCases.randomElement() ?? .crypto,
                 isChosen: false,
-                isFavorited: false
+                isFavorited: false,
+                isFromNet: false
             )
             currencies[currency.id] = currency
         }
@@ -49,14 +54,9 @@ final class Market: MarketProtocol {
         for key in currencies.keys {
             if let currency = currencies[key] {
                 let newValue = Double.random(in: DefaultValues.minimumCurrencyValue...DefaultValues.maximumCurrencyValue)
-                currencies[key] = RandomlyGeneratedCurrency(
-                    id: currency.id,
-                    name: currency.name,
-                    value: newValue,
-                    quantity: currency.quantity,
-                    type: currency.type,
-                    isChosen: currency.isChosen,
-                    isFavorited: currency.isFavorited
+                currencies[key] = RandomlyGeneratedCurrency.changeValueForCurrency(
+                    currency: currency,
+                    newValue: newValue
                 )
             }
         }
@@ -74,14 +74,9 @@ final class Market: MarketProtocol {
                     return MarketResponse(request: request, status: .failure, messege: "Not enough quantity avalible. Request for \(request.quantity), avalible \(currency.quantity)")
                 }
                 let newQuantity = currency.quantity - request.quantity
-                currencies[key] = RandomlyGeneratedCurrency(
-                    id: currency.id,
-                    name: currency.name,
-                    value: currency.value,
-                    quantity: newQuantity,
-                    type: currency.type,
-                    isChosen: currency.isChosen,
-                    isFavorited: currency.isFavorited
+                currencies[key] = RandomlyGeneratedCurrency.changeQuanityForCurrency(
+                    currency: currency,
+                    newQuantity: newQuantity
                 )
                 return MarketResponse(request: request, status: .success, messege: nil)
             }
@@ -89,14 +84,9 @@ final class Market: MarketProtocol {
             let key = request.currency.id
             if let currency = currencies[key] {
                 let newQuantity = currency.quantity + request.quantity
-                currencies[key] = RandomlyGeneratedCurrency(
-                    id: currency.id,
-                    name: currency.name,
-                    value: currency.value,
-                    quantity: newQuantity,
-                    type: currency.type,
-                    isChosen: currency.isChosen,
-                    isFavorited: currency.isFavorited
+                currencies[key] = RandomlyGeneratedCurrency.changeQuanityForCurrency(
+                    currency: currency,
+                    newQuantity: newQuantity
                 )
                 return MarketResponse(request: request, status: .success, messege: nil)
             }
