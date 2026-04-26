@@ -49,10 +49,7 @@ final class TradingViewController: UIViewController {
         setConstraints()
         tradingService.sortOffersByRate()
         offersTableView.reloadData()
-    }
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        
+        tradingService.addInitialBalanceForNetworkCurrencies()
     }
 }
 

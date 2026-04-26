@@ -23,6 +23,7 @@ protocol TradingServiceProtocol {
     func makePurchase(_ offer: Offer, quantity: Double)
     func sortOffersByRate()
     func setDelegate(_ delegate: TradingServiceDelegate)
+    func addInitialBalanceForNetworkCurrencies()
 }
 
 protocol TradingServiceDelegate: AnyObject {
@@ -67,6 +68,13 @@ final class TradingService: TradingServiceProtocol {
         
         generateLocalOffers()
         updateAvalibleNetworkCurrencies()
+    }
+    
+    func addInitialBalanceForNetworkCurrencies() {
+        guard let networkCurrencies else { return }
+        for currency in networkCurrencies {
+            walletHandler.addCurrency(currency, quantity: 10000, wallet: wallet)
+        }
     }
     
     func setDelegate(_ delegate: any TradingServiceDelegate) {
@@ -139,8 +147,8 @@ final class TradingService: TradingServiceProtocol {
                     }
                 }
             default:
-                let newFirstCurrencyQuantity = offer.currencyPair.firstCurrency.quantity - quantityToSell
-                let newSecondCurrencyQuantity = offer.currencyPair.secondCurrency.quantity + quantity
+                let newFirstCurrencyQuantity = offer.currencyPair.firstCurrency.quantity + quantityToSell
+                let newSecondCurrencyQuantity = offer.currencyPair.secondCurrency.quantity - quantity
                 DispatchQueue.main.async {
                     self.updateOffer(
                         offerToUpdate: offer,
