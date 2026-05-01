@@ -41,6 +41,7 @@ final class SplashScreenViewController: UIViewController {
     }
 }
 
+// MARK: - Private Methods
 private extension SplashScreenViewController {
     func setupUI() {
         view.backgroundColor = .systemYellow
@@ -98,7 +99,7 @@ private extension SplashScreenViewController {
     
     @objc
     func handleTimerEnd() {
-        routeToMainScreen()
+        route()
     }
 }
 
@@ -112,12 +113,28 @@ private extension SplashScreenViewController {
 
 // MARK: Routing
 private extension SplashScreenViewController {
+    func route() {
+        let defaults = DefaultsStorageService()
+        if let loggedUser = defaults.loggedUser {
+            SessionManager.shared.beginSession(username: loggedUser)
+            routeToMainScreen()
+        } else {
+            routeToLoginScreen()
+        }
+    }
+    
+    func routeToLoginScreen() {
+        let loginViewController = LoginViewController()
+        navigationController?.replaceRootViewController(with: loginViewController)
+    }
+    
     func routeToMainScreen() {
         let market = Market(amountOfCurrencies: 5)
         let marketCurrencies = market.getCurrenciesSnapshot()
         let marketCurrenciesArray = market.getArrayOfCurrencies()
         let botViewController = BotViewController(marketCurrencies: marketCurrencies)
         let tradingViewController = TradingViewController(localCurrencies: marketCurrenciesArray)
+        let settingsViewController = SettingsViewController()
         let tabBarController = UITabBarController()
         
         botViewController.tabBarItem = UITabBarItem(
@@ -134,10 +151,17 @@ private extension SplashScreenViewController {
         )
         tradingViewController.title = "Trading"
         
+        settingsViewController.tabBarItem = UITabBarItem(
+            title: "Settings",
+            image: UIImage(systemName: "gear")
+            , tag: 3
+        )
+        settingsViewController.title = "Settings"
+        
         let botNavigationController = UINavigationController(rootViewController: botViewController)
         let tradingNavigationController = UINavigationController(rootViewController: tradingViewController)
-        tabBarController.viewControllers = [botNavigationController, tradingNavigationController]
-        
+        let settingsNavigationController = UINavigationController(rootViewController: settingsViewController)
+        tabBarController.viewControllers = [botNavigationController, tradingNavigationController, settingsNavigationController]
         navigationController?.replaceRootViewController(with: tabBarController)
     }
 }
