@@ -7,9 +7,15 @@
 
 import Foundation
 import UIKit
+import Combine
 
 final class LoginViewController: UIViewController {
     private var loginService = LoginService(initialMode: .login)
+    private var cancellables = Set<AnyCancellable>()
+    
+    @Published var currentUsernameText: String = ""
+    @Published var currentPasswordText: String = ""
+    @Published var currentMode: LoginServiceMode = .login
     
     private let usernameTextField = UITextField()
     private let passwordTextField = UITextField()
@@ -45,6 +51,7 @@ final class LoginViewController: UIViewController {
         $0.layer.borderWidth = BorderWidth.standard
         $0.layer.cornerRadius = CornerRadius.small
         $0.setTitle(.proceedButton, for: .normal)
+        $0.setTitleColor(UIColor.lightGray, for: .disabled)
         return $0
     } (UIButton())
     
@@ -63,6 +70,7 @@ final class LoginViewController: UIViewController {
         setupUI()
         setConstraints()
         updateViewFromModel()
+        setupBindings()
     }
 }
 
@@ -133,6 +141,7 @@ private extension LoginViewController {
         passwordTextField.layer.cornerRadius = CornerRadius.small
         passwordTextField.layer.backgroundColor = UIColor.white.cgColor
         passwordTextField.layer.borderWidth = BorderWidth.standard
+        passwordTextField.isSecureTextEntry = true
     }
     
     func setUsernameTextViewConstraints() {
@@ -242,7 +251,36 @@ private extension LoginViewController {
         } else {
             loginService.changeMode(to: .register)
         }
+        currentMode = loginService.mode
         updateModeButtonsState(lastTappedButton: sender)
+    }
+}
+
+// MARK: - Bindings
+private extension LoginViewController {
+    func setupBindings() {
+        NotificationCenter.default.publisher(for: UITextField.textDidChangeNotification, object: usernameTextField)
+            .map { ($0.object as? UITextField)?.text ?? "" }
+            .sink { [weak self] text in
+                self?.currentUsernameText = text
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: UITextField.textDidChangeNotification, object: passwordTextField)
+            .map { ($0.object as? UITextField)?.text ?? "" }
+            .sink { [weak self] text in
+                self?.currentPasswordText = text
+            }
+            .store(in: &cancellables)
+        
+        Publishers.CombineLatest3($currentUsernameText, $currentPasswordText, $currentMode)
+            .map { username, password, mode -> Bool in
+                   let credentials = UserCredentials(username: username, password: password)
+                   return (try? LoginService.areCredentialsValid(credentials: credentials, forMode: mode)) ?? false
+               }
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.isEnabled, on: proceedButton)
+            .store(in: &cancellables)
     }
 }
 
