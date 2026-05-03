@@ -158,7 +158,8 @@ private extension BotViewController {
     func setupInitialLabel() {
         initialInfoLabel.attributedText = centeredAttributedString(
             DefaultTexts.initialInfoLabel,
-            fontSize: DefaultSizes.initialLabelFontSize)
+            fontSize: DefaultSizes.initialLabelFontSize
+        )
         initialInfoLabel.sizeToFit()
     }
     
