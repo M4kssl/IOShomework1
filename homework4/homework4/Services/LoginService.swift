@@ -78,8 +78,9 @@ private extension LoginService {
     
     func validateRegistrationCredeitials(_ userCredentials: UserCredentials) throws {
         do {
-            try validateRegistrationUsername(userCredentials.username)
-            try validateRegistrationPassword(userCredentials.password)
+            try LoginService.validateRegistrationUsername(userCredentials.username)
+            try LoginService.validateRegistrationPassword(userCredentials.password)
+            guard !doesUserExist(username: userCredentials.username) else { throw LoginError.usernameTaken }
         } catch {
             throw error
         }
@@ -101,23 +102,45 @@ private extension LoginService {
         defaultsStorage.registeredUsers = allUsers
     }
     
-    func validateRegistrationUsername(_ username: String) throws {
+    static func validateRegistrationUsername(_ username: String) throws {
         guard username.count <= DefaultValues.usernameMaxLength else { throw LoginError.invalidUsernameLengh }
         guard username.count >= DefaultValues.usernameMinLength else { throw LoginError.usernameIsTooShort }
         
         let usernameCharacters = CharacterSet(charactersIn: .usernameCharacters)
         let characterSet = CharacterSet(charactersIn: username)
         guard usernameCharacters.isSuperset(of: characterSet) else { throw LoginError.invalidUsernameCharacters }
-        guard !doesUserExist(username: username) else { throw LoginError.usernameTaken }
     }
     
-    func validateRegistrationPassword(_ password: String) throws {
+   static func validateRegistrationPassword(_ password: String) throws {
         guard password.count >= DefaultValues.passwordMinLength else { throw LoginError.passwordIsTooShort }
         
         let numbersSet = CharacterSet(charactersIn: .passwordNumbersCharacters)
         let uppercaseLettersSet = CharacterSet(charactersIn: .passwordUppercaseCharacters)
         guard password.rangeOfCharacter(from: numbersSet) != nil else { throw LoginError.invalidPasswordCharacters }
         guard password.rangeOfCharacter(from: uppercaseLettersSet) != nil  else { throw LoginError.invalidPasswordCharacters }
+    }
+}
+
+// MARK: - Static Methods
+extension LoginService {
+    static func areCredentialsValid(credentials: UserCredentials, forMode mode: LoginServiceMode) throws -> Bool {
+        switch mode {
+        case .login:
+            do {
+                try LoginService.validateRegistrationUsername(credentials.username)
+                guard credentials.password.count >= DefaultValues.passwordMinLength else { throw LoginError.passwordIsTooShort }
+            } catch {
+                throw error
+            }
+        case .register:
+            do {
+                try LoginService.validateRegistrationUsername(credentials.username)
+                try LoginService.validateRegistrationPassword(credentials.password)
+            } catch {
+                throw error
+            }
+        }
+        return true
     }
 }
 

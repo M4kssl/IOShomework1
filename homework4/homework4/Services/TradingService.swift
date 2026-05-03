@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 protocol TradingServiceProtocol {
     var wallet: WalletProtocol { get }
@@ -49,10 +50,12 @@ final class TradingService: TradingServiceProtocol {
     }
     
     private var filteredOffers = [Offer]()
-    
+    private var cancellables = Set<AnyCancellable>()
+
     private let currencyFetcher: CurrencyFetcherProtocol
     private let walletHandler: WalletHandlerProtocol
     private let lock = NSLock()
+    private let isCombineUsed = true
     
     weak var delegate: TradingServiceDelegate?
     
@@ -67,7 +70,11 @@ final class TradingService: TradingServiceProtocol {
         self.currencyPair = CurrencyPair(firstCurrency: placeholderCurrency, secondCurrency: placeholderCurrency)
         
         generateLocalOffers()
-        updateAvalibleNetworkCurrencies()
+        if isCombineUsed {
+            updateAvalibleNetworkCurrenciesWithCombine()
+        } else {
+            updateAvalibleNetworkCurrencies()
+        }
     }
     
     func addInitialBalanceForNetworkCurrencies() {
@@ -109,17 +116,34 @@ final class TradingService: TradingServiceProtocol {
     }
     
     func updateAvalibleNetworkCurrencies() {
-        currencyFetcher.fetchUiniqueCuurenicesAndPairs(completionHandler: ) { [self] result in
+        currencyFetcher.fetchUniqueCurrenicesAndPairs(completionHandler: ) { [weak self] result in
             switch result {
             case .success(let fetcherResponse):
-                self.setNewNetworkCurrencyOffers(pairs: fetcherResponse.currencyPairs)
-                self.setNewNetworkCurrencuies(newCurrencies: fetcherResponse.uniqueCurrencies)
+                self?.setNewNetworkCurrencyOffers(pairs: fetcherResponse.currencyPairs)
+                self?.setNewNetworkCurrencuies(newCurrencies: fetcherResponse.uniqueCurrencies)
             case .failure(let error):
                 DispatchQueue.main.async {
-                    self.delegate?.handleOperationError(error: error)
+                    self?.delegate?.handleOperationError(error: error)
                 }
             }
         }
+    }
+    
+    func updateAvalibleNetworkCurrenciesWithCombine() {
+        currencyFetcher.fetchUniqueCurrenicesAndPairsWithCombine()
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { [weak self] completion in
+                switch completion {
+                case .failure(let error):
+                    self?.delegate?.handleOperationError(error: error)
+                default:
+                    break
+                }
+            }, receiveValue: { [weak self] result in
+                self?.setNewNetworkCurrencyOffers(pairs: result.currencyPairs)
+                self?.setNewNetworkCurrencuies(newCurrencies: result.uniqueCurrencies)
+            })
+            .store(in: &cancellables)
     }
     
     func makePurchase(_ offer: Offer, quantity: Double) {
@@ -129,34 +153,12 @@ final class TradingService: TradingServiceProtocol {
         } catch {
             self.delegate?.handleOperationError(error: error)
         }
-        
         wallet.addCurrency(currency: offer.currencyPair.secondCurrency, quantity: quantity)
-        currencyFetcher.sendPurchaseOffer(offer: offer, quantity: quantity) { [self] result in
-            switch result {
-            case .failure(let error):
-                DispatchQueue.main.async {
-                    self.delegate?.handleOperationError(error: error)
-                }
-                self.walletHandler.addCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
-                
-                do {
-                    try self.walletHandler.withdrawCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
-                } catch {
-                    DispatchQueue.main.async {
-                        self.delegate?.handleOperationError(error: error)
-                    }
-                }
-            default:
-                let newFirstCurrencyQuantity = offer.currencyPair.firstCurrency.quantity + quantityToSell
-                let newSecondCurrencyQuantity = offer.currencyPair.secondCurrency.quantity - quantity
-                DispatchQueue.main.async {
-                    self.updateOffer(
-                        offerToUpdate: offer,
-                        newFirstCurrencyQuantity: newFirstCurrencyQuantity,
-                        newSecondCurrencyQuantity: newSecondCurrencyQuantity
-                    )
-                }
-            }
+        if isCombineUsed {
+            sendPurchaseOfferWithCombine(offer: offer, quantityToBuy: quantity, quantityToSell: quantityToSell)
+
+        } else {
+            sendPurchaseOffer(offer: offer, quantityToBuy: quantity, quantityToSell: quantityToSell)
         }
     }
     
@@ -181,6 +183,65 @@ private extension TradingService {
         lock.lock()
         defer { lock.unlock() }
         networkCurrencies = newCurrencies
+    }
+    
+    func sendPurchaseOffer(offer: Offer, quantityToBuy: Double, quantityToSell: Double) {
+        currencyFetcher.sendPurchaseOffer(offer: offer, quantity: quantityToBuy) { [self] result in
+            switch result {
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    self.delegate?.handleOperationError(error: error)
+                }
+                self.walletHandler.addCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
+                
+                do {
+                    try self.walletHandler.withdrawCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
+                } catch {
+                    DispatchQueue.main.async {
+                        self.delegate?.handleOperationError(error: error)
+                    }
+                }
+            default:
+                let newFirstCurrencyQuantity = offer.currencyPair.firstCurrency.quantity + quantityToSell
+                let newSecondCurrencyQuantity = offer.currencyPair.secondCurrency.quantity - quantityToBuy
+                DispatchQueue.main.async {
+                    self.updateOffer(
+                        offerToUpdate: offer,
+                        newFirstCurrencyQuantity: newFirstCurrencyQuantity,
+                        newSecondCurrencyQuantity: newSecondCurrencyQuantity
+                    )
+                }
+            }
+        }
+    }
+    
+    func sendPurchaseOfferWithCombine(offer: Offer, quantityToBuy: Double, quantityToSell: Double) {
+        currencyFetcher.sendPurchaseOfferWithCombine(offer: offer, quantity: quantityToBuy)
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { [weak self] completion in
+                guard let self = self else { return }
+                switch completion {
+                case .failure(let error):
+                    self.delegate?.handleOperationError(error: error)
+                    self.walletHandler.addCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
+                    do {
+                        try self.walletHandler.withdrawCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
+                    } catch {
+                        self.delegate?.handleOperationError(error: error)
+                    }
+                default:
+                    break
+                }
+            }, receiveValue: { [weak self] _ in
+                let newFirstCurrencyQuantity = offer.currencyPair.firstCurrency.quantity + quantityToSell
+                let newSecondCurrencyQuantity = offer.currencyPair.secondCurrency.quantity - quantityToBuy
+                
+                self?.updateOffer(
+                    offerToUpdate: offer,
+                    newFirstCurrencyQuantity: newFirstCurrencyQuantity,
+                    newSecondCurrencyQuantity: newSecondCurrencyQuantity
+                )
+            }).store(in: &cancellables)
     }
     
     func updateOffer(offerToUpdate offer: Offer, newFirstCurrencyQuantity: Double, newSecondCurrencyQuantity: Double) {
