@@ -20,6 +20,8 @@ final class SettingsViewController: UIViewController {
         return $0
     } (UIButton())
     
+    var onLogout: (() -> Void)?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -62,9 +64,7 @@ private extension SettingsViewController {
 private extension SettingsViewController {
     @objc
     func handleLogOutButtonTap() {
-        defaultsStorage.loggedUser = nil
-        SessionManager.shared.endSession()
-        routeToLoginScreen()
+       onLogout?()
     }
 }
 

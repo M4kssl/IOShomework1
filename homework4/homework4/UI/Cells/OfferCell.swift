@@ -8,16 +8,27 @@
 import Foundation
 import UIKit
 
+protocol OfferCellDelegate: AnyObject {
+    func infoIconTapped()
+}
+
 final class OfferCell: UITableViewCell {
     private let offerCurrencies = UILabel()
     private let offerRate = UILabel()
     private let offerQuantity = UILabel()
     private let stackView = UIStackView()
-
-    private var topConstraint: NSLayoutConstraint?
-    private var leadingConstraint: NSLayoutConstraint?
-    private var trailingConstraint: NSLayoutConstraint?
-    private var bottomConstraint: NSLayoutConstraint?
+    private let infoImage = UIImageView()
+    
+    private var stackViewTopConstraint: NSLayoutConstraint?
+    private var stackViewLeadingConstraint: NSLayoutConstraint?
+    private var stackViewTrailingConstraint: NSLayoutConstraint?
+    private var stackViewBottomConstraint: NSLayoutConstraint?
+    private var infoImageTopConstraint: NSLayoutConstraint?
+    private var infoImageWidthConstraint: NSLayoutConstraint?
+    private var infoImageHeightConstraint: NSLayoutConstraint?
+    private var infoImageTrailingConstraint: NSLayoutConstraint?
+    
+    weak var delegate: OfferCellDelegate?
     
     var displayedOffer: Offer? {
         didSet {
@@ -43,7 +54,7 @@ final class OfferCell: UITableViewCell {
         offerRate.text = "exchangeRate: \(displayedOffer.exchangeRate)"
         offerQuantity.text = "quantity: \(displayedOffer.currencyPair.secondCurrency.quantity)"
         
-        setStackViewConstraints()
+        setConstraints()
     }
     
     required init?(coder: NSCoder) {
@@ -54,15 +65,23 @@ final class OfferCell: UITableViewCell {
 // MARK: - Private Methods
 private extension OfferCell {
     func nullifyConstraints() {
-        topConstraint?.isActive = false
-        bottomConstraint?.isActive = false
-        leadingConstraint?.isActive = false
-        trailingConstraint?.isActive = false
+        stackViewTopConstraint?.isActive = false
+        stackViewBottomConstraint?.isActive = false
+        stackViewLeadingConstraint?.isActive = false
+        stackViewTrailingConstraint?.isActive = false
+        infoImageTopConstraint?.isActive = false
+        infoImageWidthConstraint?.isActive = false
+        infoImageHeightConstraint?.isActive = false
+        infoImageTrailingConstraint?.isActive = false
         
-        topConstraint = nil
-        bottomConstraint = nil
-        leadingConstraint = nil
-        trailingConstraint = nil
+        stackViewTopConstraint = nil
+        stackViewBottomConstraint = nil
+        stackViewLeadingConstraint = nil
+        stackViewTrailingConstraint = nil
+        infoImageTopConstraint = nil
+        infoImageWidthConstraint = nil
+        infoImageHeightConstraint = nil
+        infoImageTrailingConstraint = nil
     }
     
     func setupUI() {
@@ -79,10 +98,19 @@ private extension OfferCell {
         
         stackView.axis = .vertical
         stackView.spacing = StackViewSpacing.extraSmall
-
+        
+        infoImage.image = UIImage(systemName: "info.circle")
+        infoImage.isUserInteractionEnabled = true
+        infoImage.addGestureRecognizer(
+            UITapGestureRecognizer(
+                target: self,
+                action: #selector(handleInfoTap)
+            )
+        )
     }
     
     func addSubviews() {
+        contentView.addSubview(infoImage)
         contentView.addSubview(stackView)
         
         stackView.addArrangedSubview(offerCurrencies)
@@ -92,21 +120,50 @@ private extension OfferCell {
     
     func setConstraints() {
         setStackViewConstraints()
+        setInfoImageConstraints()
     }
     
     func setStackViewConstraints() {
         stackView.translatesAutoresizingMaskIntoConstraints = false
         
-        topConstraint = stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: ConstraintSpacing.standard)
-        bottomConstraint = stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -ConstraintSpacing.standard)
-        leadingConstraint = stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ConstraintSpacing.standard)
-        trailingConstraint = stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ConstraintSpacing.standard)
+        stackViewTopConstraint = stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: ConstraintSpacing.standard)
+        stackViewBottomConstraint = stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -ConstraintSpacing.standard)
+        stackViewLeadingConstraint = stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: ConstraintSpacing.standard)
+        stackViewTrailingConstraint = stackView.trailingAnchor.constraint(equalTo: infoImage.leadingAnchor, constant: -ConstraintSpacing.small)
         
-        topConstraint?.isActive = true
-        bottomConstraint?.isActive = true
-        leadingConstraint?.isActive = true
-        trailingConstraint?.isActive = true
+        stackViewTopConstraint?.isActive = true
+        stackViewBottomConstraint?.isActive = true
+        stackViewLeadingConstraint?.isActive = true
+        stackViewTrailingConstraint?.isActive = true
     }
+    
+    func setInfoImageConstraints() {
+        infoImage.translatesAutoresizingMaskIntoConstraints = false
+        
+        infoImageTopConstraint = infoImage.topAnchor.constraint(equalTo: contentView.topAnchor, constant: ConstraintSpacing.small)
+        infoImageWidthConstraint = infoImage.widthAnchor.constraint(lessThanOrEqualToConstant: .infoImageWidth)
+        infoImageHeightConstraint = infoImage.widthAnchor.constraint(lessThanOrEqualToConstant: .infoImageHeight)
+        infoImageTrailingConstraint = infoImage.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -ConstraintSpacing.small)
+        
+        infoImageTopConstraint?.isActive = true
+        infoImageWidthConstraint?.isActive = true
+        infoImageHeightConstraint?.isActive = true
+        infoImageTrailingConstraint?.isActive = true
+    }
+}
+
+// MARK: - Action Handlers
+private extension OfferCell {
+    @objc
+    func handleInfoTap() {
+        delegate?.infoIconTapped()
+    }
+}
+
+// MARK: - CGFloat Constants
+private extension CGFloat {
+    static let infoImageWidth: CGFloat = 20
+    static let infoImageHeight: CGFloat = 20
 }
 
 // MARK: - Identifier

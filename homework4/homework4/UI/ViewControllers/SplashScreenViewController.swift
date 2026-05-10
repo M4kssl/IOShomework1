@@ -27,6 +27,8 @@ final class SplashScreenViewController: UIViewController {
     
     private var timer: Timer?
     
+    var onFinishLoading: (() -> Void)?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -99,7 +101,8 @@ private extension SplashScreenViewController {
     
     @objc
     func handleTimerEnd() {
-        route()
+        //route()
+        onFinishLoading?()
     }
 }
 

@@ -10,9 +10,10 @@ import UIKit
 
 final class TradingViewController: UIViewController {
     private let currencyToChooseStackView = UIStackView()
-    private let tradingService: TradingServiceProtocol
     private let openWalletBarButton = UIBarButtonItem()
     private let offersTableView = UITableView()
+    
+    let tradingService: TradingServiceProtocol
     
     private var currenciesToChoose = [CurrencyToChooseView]()
     private var tappedOffer: Offer?
@@ -21,6 +22,10 @@ final class TradingViewController: UIViewController {
     }
     
     private var chosenCurrencies: [RandomlyGeneratedCurrency]
+    
+    var onOpenWallet: ((TradingServiceProtocol) -> Void)?
+    var onOpenCurrencyConversion: ((TradingServiceProtocol) -> Void)?
+    var onOpenSellerDetail: (() -> Void)?
     
     init(localCurrencies: [RandomlyGeneratedCurrency]) {
         self.tradingService = TradingService(
@@ -262,21 +267,23 @@ private extension TradingViewController {
     
     @objc
     func handleChosenCurrencyTap() {
-        routeToFavoriteCurrencyConversion()
+        //routeToCurrencyConversion()
+        onOpenCurrencyConversion?(tradingService)
     }
 }
 
 // MARK: - Routing
 private extension TradingViewController {
     func routeToWallet() {
-        let walletViewController = WalletViewController(
-            walletCurrencies: tradingService.wallet.getCurrenciesOnHandSnapshot(),
-            marketCurrencies: tradingService.getAllCurrenciesSnapshot()
-        )
-        present(walletViewController, animated: true)
+//        let walletViewController = WalletViewController(
+//            walletCurrencies: tradingService.wallet.getCurrenciesOnHandSnapshot(),
+//            marketCurrencies: tradingService.getAllCurrenciesSnapshot()
+//        )
+//        present(walletViewController, animated: true)
+        onOpenWallet?(tradingService)
     }
     
-    func routeToFavoriteCurrencyConversion() {
+    func routeToCurrencyConversion() {
         let chosenCurrencies = [tradingService.currencyPair.firstCurrency, tradingService.currencyPair.secondCurrency]
         let conversionViewController = CurrencyConversionViewController(currencies: tradingService.getAllCurrenciesSnapshot(), chosenCurrencies: chosenCurrencies)
         conversionViewController.currencyConversionDelegate = self
@@ -284,7 +291,7 @@ private extension TradingViewController {
     }
 }
 
-// MARK: - FavoriteCurrenciesDelegate And CurrencyConversionDelegate Implementation
+// MARK: - CurrencyConversionDelegate Implementation
 extension TradingViewController: CurrencyConversionDelegate {
     func currencyChosen(chosenCurrencies: [RandomlyGeneratedCurrency]) {
         let newCurrecnyPair = CurrencyPair(firstCurrency: chosenCurrencies[0], secondCurrency: chosenCurrencies[1])
@@ -293,8 +300,8 @@ extension TradingViewController: CurrencyConversionDelegate {
     }
     
     func currencyConversionUpdated(allCurrencies: [RandomlyGeneratedCurrency], chosenCurrencies: [RandomlyGeneratedCurrency]) {
-        let newCurrecnyPair = CurrencyPair(firstCurrency: chosenCurrencies[0], secondCurrency: chosenCurrencies[1])
-        tradingService.setNewCurrencyPair(newPair: newCurrecnyPair)
+        let newCurrencyPair = CurrencyPair(firstCurrency: chosenCurrencies[0], secondCurrency: chosenCurrencies[1])
+        tradingService.setNewCurrencyPair(newPair: newCurrencyPair)
         tradingService.updateCurrencies(newCurrencies: allCurrencies)
         updateViewFromModel()
     }
@@ -308,6 +315,12 @@ extension TradingViewController: UITableViewDelegate {
     }
 }
 
+extension TradingViewController: OfferCellDelegate {
+    func infoIconTapped() {
+        onOpenSellerDetail?()
+    }
+}
+
 // MARK: - UITableViewDataSource Implementation
 extension TradingViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -317,6 +330,7 @@ extension TradingViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: OfferCell.identifier) as? OfferCell
         cell?.displayedOffer = tradingService.currentOffersSnapshot()[indexPath.row]
+        cell?.delegate = self
         return cell ?? UITableViewCell()
     }
 }

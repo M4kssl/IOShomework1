@@ -109,7 +109,7 @@ final class TradingService: TradingServiceProtocol {
     
     func currentOffersSnapshot() -> [Offer] {
         var offerArray = offers
-        if !filteredOffers.isEmpty {
+        if currencyPair.firstCurrency.id != UUID.empty || currencyPair.secondCurrency.id != UUID.empty {
             offerArray = filteredOffers
         }
         return offerArray

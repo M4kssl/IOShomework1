@@ -13,6 +13,8 @@ final class LoginViewController: UIViewController {
     private var loginService = LoginService(initialMode: .login)
     private var cancellables = Set<AnyCancellable>()
     
+    var onLoginSuccess: (() -> Void)?
+    
     @Published var currentUsernameText: String = ""
     @Published var currentPasswordText: String = ""
     @Published var currentMode: LoginServiceMode = .login
@@ -238,7 +240,8 @@ private extension LoginViewController {
             let userCredentials = UserCredentials(username: username, password: password)
             try loginService.tryLogUserIn(userCredentials: userCredentials)
             SessionManager.shared.beginSession(username: userCredentials.username)
-            routeToMainScreen()
+            //routeToMainScreen()
+            onLoginSuccess?()
         } catch {
             handleLoginError(error)
         }
@@ -302,12 +305,15 @@ private extension LoginViewController {
         )
         botViewController.title = "Bot"
         
-        tradingViewController.tabBarItem = UITabBarItem(
-            title: "Trading",
-            image: UIImage(systemName: "bitcoinsign.bank.building")
-            , tag: 1
-        )
-        tradingViewController.title = "Trading"
+//        tradingViewController.tabBarItem = UITabBarItem(
+//            title: "Trading",
+//            image: UIImage(systemName: "bitcoinsign.bank.building")
+//            , tag: 1
+//        )
+//        tradingViewController.title = "Trading"
+        let tradingNavigationController = UINavigationController()
+        let tradingCoordinator = TradingCoordinator(navigationController: tradingNavigationController)
+        tradingCoordinator.start()
         
         settingsViewController.tabBarItem = UITabBarItem(
             title: "Settings",
@@ -317,7 +323,6 @@ private extension LoginViewController {
         settingsViewController.title = "Settings"
         
         let botNavigationController = UINavigationController(rootViewController: botViewController)
-        let tradingNavigationController = UINavigationController(rootViewController: tradingViewController)
         let settingsNavigationController = UINavigationController(rootViewController: settingsViewController)
         tabBarController.viewControllers = [botNavigationController, tradingNavigationController, settingsNavigationController]
         navigationController?.replaceRootViewController(with: tabBarController)

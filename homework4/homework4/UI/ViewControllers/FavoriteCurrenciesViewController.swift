@@ -63,6 +63,10 @@ final class FavoriteCurrenciesViewController: UIViewController {
     
     var currenciesToDisplay: [RandomlyGeneratedCurrency]?
     var chosenCurrencies: [RandomlyGeneratedCurrency]?
+    var onClosed: ((_ allCurrencies: [RandomlyGeneratedCurrency], _ chosenCurrencies: [RandomlyGeneratedCurrency]) -> Void)?
+    var onCurrencyChosen: ((_ chosenCurrencies: [RandomlyGeneratedCurrency]) -> Void)?
+    var onShowAllCurrencies: ((_ allCurrencies: [RandomlyGeneratedCurrency]) -> Void)?
+    
     weak var favoriteCurrenciesDelegate: FavoriteCurrenciesDelegate?
     
     override func viewDidLoad() {
@@ -76,6 +80,7 @@ final class FavoriteCurrenciesViewController: UIViewController {
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        onClosed?(currencyDataGenerator.allCurrencies, currencyDataGenerator.chosenCurrencies)
         timer?.invalidate()
     }
 }
@@ -93,10 +98,10 @@ private extension FavoriteCurrenciesViewController {
         if let currencyToReselectIndex {
             currenciesToChoose[currencyToReselectIndex].isChosen = true
         }
-        favoriteCurrenciesDelegate?.currencyConversionUpdated(
-            allCurrencies: currencyDataGenerator.allCurrencies,
-            chosenCurrencies: currencyDataGenerator.chosenCurrencies
-        )
+//        favoriteCurrenciesDelegate?.currencyConversionUpdated(
+//            allCurrencies: currencyDataGenerator.allCurrencies,
+//            chosenCurrencies: currencyDataGenerator.chosenCurrencies
+//        )
     }
     
     func updateConversionResult() {
@@ -377,8 +382,9 @@ private extension FavoriteCurrenciesViewController {
     
     @objc
     func handleShowAllButtonTap() {
-        favoriteCurrenciesDelegate?.showAllCurrencies(allCurrencies: currencyDataGenerator.allCurrencies)
-        dismiss(animated: true)
+        //favoriteCurrenciesDelegate?.showAllCurrencies(allCurrencies: currencyDataGenerator.allCurrencies)
+        //dismiss(animated: true)
+        onShowAllCurrencies?(currencyDataGenerator.allCurrencies)
     }
 }
 
@@ -418,7 +424,8 @@ extension FavoriteCurrenciesViewController: CurrencyDelegatePrtocol {
         if let selectedCurrencyToChooseIndex, !currency.isChosen {
             deselectAllCurrenciesToChoose()
             currencyDataGenerator.chooseCurrency(currency: currency, chosenCurrenciesIndex: selectedCurrencyToChooseIndex)
-            favoriteCurrenciesDelegate?.currencyChosen(chosenCurrencies: currencyDataGenerator.chosenCurrencies)
+            //favoriteCurrenciesDelegate?.currencyChosen(chosenCurrencies: currencyDataGenerator.chosenCurrencies)
+            onCurrencyChosen?(currencyDataGenerator.chosenCurrencies)
             updateViewFromModel()
             aninmateCellSelection(at: indexPath)
         }

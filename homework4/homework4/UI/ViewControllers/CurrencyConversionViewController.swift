@@ -64,6 +64,9 @@ final class CurrencyConversionViewController: UIViewController {
     
     weak var currencyConversionDelegate: CurrencyConversionDelegate?
     
+    var onClosed: ((_ allCurrencies: [RandomlyGeneratedCurrency], _ chosenCurrencies: [RandomlyGeneratedCurrency]) -> Void)?
+    var onCurrencyChosen: ((_ chosenCurrencies: [RandomlyGeneratedCurrency]) -> Void)?
+    
     init(currencies: [RandomlyGeneratedCurrency], chosenCurrencies: [RandomlyGeneratedCurrency], isTimerNeeded: Bool = false) {
         currencyDataGenerator = CurrencyDataProvider(
             currencies: currencies,
@@ -89,6 +92,7 @@ final class CurrencyConversionViewController: UIViewController {
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        onClosed?(currencyDataGenerator.allCurrencies, currencyDataGenerator.chosenCurrencies)
         timer?.invalidate()
     }
 }
@@ -106,10 +110,6 @@ private extension CurrencyConversionViewController {
         if let currencyToReselectIndex {
             currenciesToChoose[currencyToReselectIndex].isChosen = true
         }
-        currencyConversionDelegate?.currencyConversionUpdated(
-            allCurrencies: currencyDataGenerator.allCurrencies,
-            chosenCurrencies: currencyDataGenerator.chosenCurrencies
-        )
     }
     
     func updateFilterButtonsState(lastTappedButton: UIButton) {
@@ -524,7 +524,8 @@ extension CurrencyConversionViewController: CurrencyDelegatePrtocol {
         if let selectedCurrencyToChooseIndex, !currency.isChosen {
             deselectAllCurrenciesToChoose()
             currencyDataGenerator.chooseCurrency(currency: currency, chosenCurrenciesIndex: selectedCurrencyToChooseIndex)
-            currencyConversionDelegate?.currencyChosen(chosenCurrencies: currencyDataGenerator.chosenCurrencies)
+            onCurrencyChosen?(currencyDataGenerator.chosenCurrencies)
+            //currencyConversionDelegate?.currencyChosen(chosenCurrencies: currencyDataGenerator.chosenCurrencies)
             updateViewFromModel()
             aninmateCellSelection(at: indexPath)
         }

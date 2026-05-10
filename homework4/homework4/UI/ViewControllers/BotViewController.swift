@@ -78,12 +78,16 @@ final class BotViewController: UIViewController {
     private let resetBarButton = UIBarButtonItem()
     private let chooeseRandomCurrencyBarButton = UIBarButtonItem()
     private let openWalletBarButton = UIBarButtonItem()
-    private let market: MarketProtocol //= Market(amountOfCurrencies: DefaultValues.currenciesToGenerate)
-    private let wallet: WalletProtocol //Wallet(currencies: market.getArrayOfCurrencies())
-
+    private let market: MarketProtocol
+    private let wallet: WalletProtocol
     
     private var commonHistory = [DayResult]()
     private var currenciesToChoose = [CurrencyToChooseView]()
+    
+    var onOpenCurrencyConversion: (([RandomlyGeneratedCurrency], [RandomlyGeneratedCurrency]) -> Void)?
+    var onOpenWallet: ((MarketProtocol, WalletProtocol) -> Void)?
+    var onOpenChart: (() -> Void)?
+    var onOpenFavoriteCurrencies: (([RandomlyGeneratedCurrency], [RandomlyGeneratedCurrency]) -> Void)?
     
     init(marketCurrencies: [UUID : RandomlyGeneratedCurrency]) {
         self.market = Market(currencies: marketCurrencies)
@@ -99,6 +103,7 @@ final class BotViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         initViews()
+        updateViewFromModel()
     }
 }
 
@@ -497,7 +502,7 @@ private extension BotViewController {
     
     @objc
     func handleChosenCurrencyTap() {
-        routeToFavoriteCurrencyConversion()
+        onOpenFavoriteCurrencies?(market.getArrayOfCurrencies(), traderBot.chosenCurrencies)
     }
     
     @objc
@@ -522,12 +527,14 @@ private extension BotViewController {
     
     @objc
     func handleOpenChartButtonTap() {
-        routeToChart()
+        //routeToChart()
+        onOpenChart?()
     }
     
     @objc
     func handleOpenWalletBarButton() {
-        routeToWallet()
+        //routeToWallet()
+        onOpenWallet?(market, wallet)
     }
     
     func centeredAttributedString(_ string: String, fontSize: CGFloat) -> NSAttributedString {
@@ -605,7 +612,8 @@ extension BotViewController: CurrencyConversionDelegate, FavoriteCurrenciesDeleg
     func showAllCurrencies(allCurrencies: [RandomlyGeneratedCurrency]) {
         market.updateCurrencies(with: allCurrencies)
         updateViewFromModel()
-        routeToCurrencyConversion()
+        //routeToCurrencyConversion()
+        onOpenCurrencyConversion?(market.getArrayOfCurrencies(), traderBot.chosenCurrencies)
     }
 }
 
