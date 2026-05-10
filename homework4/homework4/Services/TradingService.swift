@@ -51,7 +51,7 @@ final class TradingService: TradingServiceProtocol {
     
     private var filteredOffers = [Offer]()
     private var cancellables = Set<AnyCancellable>()
-
+    
     private let currencyFetcher: CurrencyFetcherProtocol
     private let walletHandler: WalletHandlerProtocol
     private let lock = NSLock()
@@ -149,14 +149,14 @@ final class TradingService: TradingServiceProtocol {
     func makePurchase(_ offer: Offer, quantity: Double) {
         let quantityToSell = quantity / offer.exchangeRate
         do {
-            try wallet.withdrawCurrency(currency: offer.currencyPair.firstCurrency, quantity: quantityToSell)
+            try walletHandler.withdrawCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: wallet)
         } catch {
             self.delegate?.handleOperationError(error: error)
+            return
         }
         wallet.addCurrency(currency: offer.currencyPair.secondCurrency, quantity: quantity)
         if isCombineUsed {
             sendPurchaseOfferWithCombine(offer: offer, quantityToBuy: quantity, quantityToSell: quantityToSell)
-
         } else {
             sendPurchaseOffer(offer: offer, quantityToBuy: quantity, quantityToSell: quantityToSell)
         }

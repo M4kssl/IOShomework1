@@ -16,19 +16,24 @@ protocol CurrencyFetcherProtocol {
 }
 
 final class AlorCurrencyFetcher: CurrencyFetcherProtocol {
-    let apiClient = AlorAPIClient()
+    let gateway = AlorGateway()
     let requestMapper = AlorRequestMapper()
+    let responseMapper = AlorResponseMapper()
     
     func fetchUniqueCurrenicesAndPairs(completionHandler: @escaping (Result<CurrencyFetcherResponse, Error>) -> Void) {
-        apiClient.getAllCurrencyPairs { [weak self] result in
+        gateway.fetchCurrencyData { [weak self] result in
             switch result {
-            case .success(let newPairs):
-                if let newPairs, !newPairs.isEmpty {
-                    guard let uniqueCurrencies = self?.getUniqueCurrenciesFromPairs(pairs: newPairs) else {
+            case .success(let alorPairs):
+                if let alorPairs, !alorPairs.isEmpty {
+                    guard let domainPairs = self?.responseMapper.convertToDomainCurrency(alorPairs), !domainPairs.isEmpty else {
                         completionHandler(.failure(APIRequestError.NoData))
                         return
                     }
-                    let result = CurrencyFetcherResponse(uniqueCurrencies: uniqueCurrencies, currencyPairs: newPairs)
+                    guard let uniqueCurrencies = self?.getUniqueCurrenciesFromPairs(pairs: domainPairs) else {
+                        completionHandler(.failure(APIRequestError.NoData))
+                        return
+                    }
+                    let result = CurrencyFetcherResponse(uniqueCurrencies: uniqueCurrencies, currencyPairs: domainPairs)
                     completionHandler(.success(result))
                 } else {
                     completionHandler(.failure(APIRequestError.NoData))
@@ -41,7 +46,7 @@ final class AlorCurrencyFetcher: CurrencyFetcherProtocol {
     
     func sendPurchaseOffer(offer: Offer, quantity: Double, completionHandler: @escaping (Result<Bool, Error>) -> Void) {
         let requestData = requestMapper.mapPurchaseOfferRequest(offer: offer, quantity: quantity)
-        apiClient.sendPurchaseOffer(requestData: requestData) { result in
+        gateway.sendPurchaseRequest(requestData: requestData) { result in
             switch result {
             case .success(let result):
                 completionHandler(.success(result))
@@ -52,13 +57,16 @@ final class AlorCurrencyFetcher: CurrencyFetcherProtocol {
     }
     
     func fetchUniqueCurrenicesAndPairsWithCombine() -> AnyPublisher<CurrencyFetcherResponse, Error> {
-        return apiClient.getAllCurrencyPairsWithCombine()
-            .tryMap { [weak self] newPairs -> CurrencyFetcherResponse in
-                guard let newPairs, !newPairs.isEmpty else { throw APIRequestError.NoData }
-                guard let uniqueCurrencies = self?.getUniqueCurrenciesFromPairs(pairs: newPairs) else {
+        return gateway.fetchCurrencyDataWithCombine()
+            .tryMap { [weak self] alorPairs -> CurrencyFetcherResponse in
+                guard !alorPairs.isEmpty else { throw APIRequestError.NoData }
+                guard let domainPairs = self?.responseMapper.convertToDomainCurrency(alorPairs), !domainPairs.isEmpty else {
                     throw APIRequestError.NoData
                 }
-                return CurrencyFetcherResponse(uniqueCurrencies: uniqueCurrencies, currencyPairs: newPairs)
+                guard let uniqueCurrencies = self?.getUniqueCurrenciesFromPairs(pairs: domainPairs) else {
+                    throw APIRequestError.NoData
+                }
+                return CurrencyFetcherResponse(uniqueCurrencies: uniqueCurrencies, currencyPairs: domainPairs)
             }
             .eraseToAnyPublisher()
     }
@@ -66,7 +74,7 @@ final class AlorCurrencyFetcher: CurrencyFetcherProtocol {
     func sendPurchaseOfferWithCombine(offer: Offer, quantity: Double) -> AnyPublisher<Bool, Error> {
         let requestData = requestMapper.mapPurchaseOfferRequest(offer: offer, quantity: quantity)
         
-        return apiClient.sendPurchaseOfferWithCombine(requestData: requestData)
+        return gateway.sendPurchaseRequestWithCombine(requestData: requestData)
             .map { result -> Bool in
                 return result
             }
