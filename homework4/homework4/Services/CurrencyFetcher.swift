@@ -16,9 +16,15 @@ protocol CurrencyFetcherProtocol {
 }
 
 final class AlorCurrencyFetcher: CurrencyFetcherProtocol {
-    let gateway = AlorGateway()
-    let requestMapper = AlorRequestMapper()
-    let responseMapper = AlorResponseMapper()
+    let gateway: AlorGatewayProtocol
+    let requestMapper: AlorRequestMapperProtocol
+    let responseMapper: AlorResponseMapperProtocol
+    
+    init(gateway: AlorGatewayProtocol, requestMapper: AlorRequestMapperProtocol, responseMapper: AlorResponseMapperProtocol) {
+        self.gateway = gateway
+        self.requestMapper = requestMapper
+        self.responseMapper = responseMapper
+    }
     
     func fetchUniqueCurrenicesAndPairs(completionHandler: @escaping (Result<CurrencyFetcherResponse, Error>) -> Void) {
         gateway.fetchCurrencyData { [weak self] result in

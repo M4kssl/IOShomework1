@@ -12,19 +12,21 @@ protocol TradingServiceProtocol {
     var wallet: WalletProtocol { get }
     var localCurrencies: [RandomlyGeneratedCurrency] { get }
     var networkCurrencies: [RandomlyGeneratedCurrency]? { get }
-    var mode: TradingServiceMode { get }
     var currencyPair: CurrencyPair { get }
     var offers: [Offer] { get }
+    var delegate: TradingServiceDelegate? { get }
     
-    func changeMode(newMode: TradingServiceMode)
     func setNewCurrencyPair(newPair: CurrencyPair)
     func updateCurrencies(newCurrencies: [RandomlyGeneratedCurrency])
     func getAllCurrenciesSnapshot() -> [RandomlyGeneratedCurrency]
     func currentOffersSnapshot() -> [Offer]
-    func makePurchase(_ offer: Offer, quantity: Double)
+    func makePurchase(_ offer: Offer, quantity: Double, isCombineUsed: Bool)
     func sortOffersByRate()
     func setDelegate(_ delegate: TradingServiceDelegate)
     func addInitialBalanceForNetworkCurrencies()
+    func setNewOffers(_ newOffers: [Offer])
+    func updateNetworkCurrencies(isCombineUsed: Bool)
+    func generateLocalOffers()
 }
 
 protocol TradingServiceDelegate: AnyObject {
@@ -55,7 +57,7 @@ final class TradingService: TradingServiceProtocol {
     private let currencyFetcher: CurrencyFetcherProtocol
     private let walletHandler: WalletHandlerProtocol
     private let lock = NSLock()
-    private let isCombineUsed = true
+    private let isCombineUsed = false
     
     weak var delegate: TradingServiceDelegate?
     
@@ -70,6 +72,14 @@ final class TradingService: TradingServiceProtocol {
         self.currencyPair = CurrencyPair(firstCurrency: placeholderCurrency, secondCurrency: placeholderCurrency)
         
         generateLocalOffers()
+        updateNetworkCurrencies(isCombineUsed: isCombineUsed)
+    }
+    
+    func setNewOffers(_ newOffers: [Offer]) {
+        offers = newOffers
+    }
+    
+    func updateNetworkCurrencies(isCombineUsed: Bool) {
         if isCombineUsed {
             updateAvalibleNetworkCurrenciesWithCombine()
         } else {
@@ -88,13 +98,6 @@ final class TradingService: TradingServiceProtocol {
         lock.lock()
         defer { lock.unlock() }
         self.delegate = delegate
-    }
-    
-    func changeMode(newMode: TradingServiceMode) {
-        mode = newMode
-        if mode == .Network {
-            updateAvalibleNetworkCurrencies()
-        }
     }
     
     func sortOffersByRate() {
@@ -121,6 +124,7 @@ final class TradingService: TradingServiceProtocol {
             case .success(let fetcherResponse):
                 self?.setNewNetworkCurrencyOffers(pairs: fetcherResponse.currencyPairs)
                 self?.setNewNetworkCurrencuies(newCurrencies: fetcherResponse.uniqueCurrencies)
+                self?.delegate?.offersUpdated()
             case .failure(let error):
                 DispatchQueue.main.async {
                     self?.delegate?.handleOperationError(error: error)
@@ -142,11 +146,12 @@ final class TradingService: TradingServiceProtocol {
             }, receiveValue: { [weak self] result in
                 self?.setNewNetworkCurrencyOffers(pairs: result.currencyPairs)
                 self?.setNewNetworkCurrencuies(newCurrencies: result.uniqueCurrencies)
+                self?.delegate?.offersUpdated()
             })
             .store(in: &cancellables)
     }
     
-    func makePurchase(_ offer: Offer, quantity: Double) {
+    func makePurchase(_ offer: Offer, quantity: Double, isCombineUsed: Bool = false) {
         let quantityToSell = quantity / offer.exchangeRate
         do {
             try walletHandler.withdrawCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: wallet)
@@ -154,7 +159,7 @@ final class TradingService: TradingServiceProtocol {
             self.delegate?.handleOperationError(error: error)
             return
         }
-        wallet.addCurrency(currency: offer.currencyPair.secondCurrency, quantity: quantity)
+        walletHandler.addCurrency(offer.currencyPair.secondCurrency, quantity: quantity, wallet: wallet)
         if isCombineUsed {
             sendPurchaseOfferWithCombine(offer: offer, quantityToBuy: quantity, quantityToSell: quantityToSell)
         } else {
@@ -166,14 +171,30 @@ final class TradingService: TradingServiceProtocol {
         let newLocalCurrencies = newCurrencies.filter { !$0.isFromNet }
         let newNetworkCurrencies = newCurrencies.filter { $0.isFromNet }
         
-        setNewLocalCurrencuies(newCurrencies: newNetworkCurrencies)
-        setNewNetworkCurrencuies(newCurrencies: newLocalCurrencies)
+        setNewLocalCurrencuies(newCurrencies: newLocalCurrencies)
+        setNewNetworkCurrencuies(newCurrencies: newNetworkCurrencies)
     }
     
     func setNewCurrencyPair(newPair: CurrencyPair) {
         lock.lock()
         defer { lock.unlock() }
         currencyPair = newPair
+    }
+    
+    func generateLocalOffers() {
+        lock.lock()
+        defer { lock.unlock() }
+        offers = offers.filter { $0.isNetworkOffer }
+        for firstCurrency in localCurrencies {
+            for secondCurrency in localCurrencies {
+                if firstCurrency.id == secondCurrency.id {
+                    continue
+                }
+                let pair = CurrencyPair(firstCurrency: firstCurrency, secondCurrency: secondCurrency)
+                let offer = Offer(id: UUID(),currencyPair: pair)
+                offers.append(offer)
+            }
+        }
     }
 }
 
@@ -192,10 +213,9 @@ private extension TradingService {
                 DispatchQueue.main.async {
                     self.delegate?.handleOperationError(error: error)
                 }
-                self.walletHandler.addCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
-                
                 do {
-                    try self.walletHandler.withdrawCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
+                    try self.walletHandler.withdrawCurrency(offer.currencyPair.secondCurrency, quantity: quantityToSell, wallet: self.wallet)
+                    self.walletHandler.addCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
                 } catch {
                     DispatchQueue.main.async {
                         self.delegate?.handleOperationError(error: error)
@@ -223,9 +243,9 @@ private extension TradingService {
                 switch completion {
                 case .failure(let error):
                     self.delegate?.handleOperationError(error: error)
-                    self.walletHandler.addCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
                     do {
-                        try self.walletHandler.withdrawCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
+                        try self.walletHandler.withdrawCurrency(offer.currencyPair.secondCurrency, quantity: quantityToSell, wallet: self.wallet)
+                        self.walletHandler.addCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
                     } catch {
                         self.delegate?.handleOperationError(error: error)
                     }
@@ -268,22 +288,6 @@ private extension TradingService {
         }
         filteredOffers = suitableOffers
         delegate?.offersUpdated()
-    }
-    
-    func generateLocalOffers() {
-        lock.lock()
-        defer { lock.unlock() }
-        offers = offers.filter { $0.isNetworkOffer }
-        for firstCurrency in localCurrencies {
-            for secondCurrency in localCurrencies {
-                if firstCurrency.id == secondCurrency.id {
-                    continue
-                }
-                let pair = CurrencyPair(firstCurrency: firstCurrency, secondCurrency: secondCurrency)
-                let offer = Offer(id: UUID(),currencyPair: pair)
-                offers.append(offer)
-            }
-        }
     }
     
     func setNewNetworkCurrencyOffers(pairs: [CurrencyPair]) {

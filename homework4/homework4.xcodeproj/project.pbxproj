@@ -6,7 +6,18 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		B5036C492FB5F32400106F9E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B54CF3982F6999A60059278E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B54CF39F2F6999A60059278E;
+			remoteInfo = homework4;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		B5036C452FB5F32400106F9E /* TradingAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TradingAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B54CF3A02F6999A60059278E /* homework4.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = homework4.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -21,6 +32,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		B5036C462FB5F32400106F9E /* TradingAppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TradingAppTests;
+			sourceTree = "<group>";
+		};
 		B54CF3A22F6999A60059278E /* homework4 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -32,6 +48,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		B5036C422FB5F32400106F9E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B54CF39D2F6999A60059278E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -46,6 +69,7 @@
 			isa = PBXGroup;
 			children = (
 				B54CF3A22F6999A60059278E /* homework4 */,
+				B5036C462FB5F32400106F9E /* TradingAppTests */,
 				B54CF3A12F6999A60059278E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,6 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				B54CF3A02F6999A60059278E /* homework4.app */,
+				B5036C452FB5F32400106F9E /* TradingAppTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -61,6 +86,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		B5036C442FB5F32400106F9E /* TradingAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B5036C4D2FB5F32400106F9E /* Build configuration list for PBXNativeTarget "TradingAppTests" */;
+			buildPhases = (
+				B5036C412FB5F32400106F9E /* Sources */,
+				B5036C422FB5F32400106F9E /* Frameworks */,
+				B5036C432FB5F32400106F9E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B5036C4A2FB5F32400106F9E /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B5036C462FB5F32400106F9E /* TradingAppTests */,
+			);
+			name = TradingAppTests;
+			packageProductDependencies = (
+			);
+			productName = TradingAppTests;
+			productReference = B5036C452FB5F32400106F9E /* TradingAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		B54CF39F2F6999A60059278E /* homework4 */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = B54CF3B32F6999A80059278E /* Build configuration list for PBXNativeTarget "homework4" */;
@@ -93,6 +141,10 @@
 				LastSwiftUpdateCheck = 1630;
 				LastUpgradeCheck = 1630;
 				TargetAttributes = {
+					B5036C442FB5F32400106F9E = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = B54CF39F2F6999A60059278E;
+					};
 					B54CF39F2F6999A60059278E = {
 						CreatedOnToolsVersion = 16.3;
 					};
@@ -113,11 +165,19 @@
 			projectRoot = "";
 			targets = (
 				B54CF39F2F6999A60059278E /* homework4 */,
+				B5036C442FB5F32400106F9E /* TradingAppTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		B5036C432FB5F32400106F9E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B54CF39E2F6999A60059278E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -128,6 +188,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		B5036C412FB5F32400106F9E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B54CF39C2F6999A60059278E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -137,7 +204,53 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		B5036C4A2FB5F32400106F9E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B54CF39F2F6999A60059278E /* homework4 */;
+			targetProxy = B5036C492FB5F32400106F9E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		B5036C4B2FB5F32400106F9E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 833PR92W8R;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = M4xl.TradingAppTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/homework4.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/homework4";
+			};
+			name = Debug;
+		};
+		B5036C4C2FB5F32400106F9E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 833PR92W8R;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = M4xl.TradingAppTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/homework4.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/homework4";
+			};
+			name = Release;
+		};
 		B54CF3B42F6999A80059278E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -320,6 +433,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		B5036C4D2FB5F32400106F9E /* Build configuration list for PBXNativeTarget "TradingAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B5036C4B2FB5F32400106F9E /* Debug */,
+				B5036C4C2FB5F32400106F9E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		B54CF39B2F6999A60059278E /* Build configuration list for PBXProject "homework4" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
