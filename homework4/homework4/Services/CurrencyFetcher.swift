@@ -33,18 +33,23 @@ final class AlorCurrencyFetcher: CurrencyFetcherProtocol {
                 if let alorPairs, !alorPairs.isEmpty {
                     guard let domainPairs = self?.responseMapper.convertToDomainCurrency(alorPairs), !domainPairs.isEmpty else {
                         completionHandler(.failure(APIRequestError.NoData))
+                        AppLogger.network.error("fetching currecnies failed due to no data after conversion to domain")
                         return
                     }
                     guard let uniqueCurrencies = self?.getUniqueCurrenciesFromPairs(pairs: domainPairs) else {
                         completionHandler(.failure(APIRequestError.NoData))
+                        AppLogger.network.fault("fetching currecnies failed due to no unique currencies after conversion to domain")
                         return
                     }
                     let result = CurrencyFetcherResponse(uniqueCurrencies: uniqueCurrencies, currencyPairs: domainPairs)
+                    AppLogger.network.info("fetching currecnies success")
                     completionHandler(.success(result))
                 } else {
+                    AppLogger.network.error("fetching currecnies failed due to no data recieved")
                     completionHandler(.failure(APIRequestError.NoData))
                 }
             case .failure(let error):
+                AppLogger.network.error("fetching currecnies failed due to unexpected error: \(error)")
                 completionHandler(.failure(error))
             }
         }
@@ -55,8 +60,10 @@ final class AlorCurrencyFetcher: CurrencyFetcherProtocol {
         gateway.sendPurchaseRequest(requestData: requestData) { result in
             switch result {
             case .success(let result):
+                AppLogger.network.info("sending purchase offer success")
                 completionHandler(.success(result))
             case .failure(let error):
+                AppLogger.network.error("sending purchase failed due to unexpected error: \(error)")
                 completionHandler(.failure(error))
             }
         }
@@ -67,11 +74,14 @@ final class AlorCurrencyFetcher: CurrencyFetcherProtocol {
             .tryMap { [weak self] alorPairs -> CurrencyFetcherResponse in
                 guard !alorPairs.isEmpty else { throw APIRequestError.NoData }
                 guard let domainPairs = self?.responseMapper.convertToDomainCurrency(alorPairs), !domainPairs.isEmpty else {
+                    AppLogger.network.error("fetching currecnies failed due to no data after conversion to domain")
                     throw APIRequestError.NoData
                 }
                 guard let uniqueCurrencies = self?.getUniqueCurrenciesFromPairs(pairs: domainPairs) else {
+                    AppLogger.network.fault("fetching currecnies failed due to no unique currencies after conversion to domain")
                     throw APIRequestError.NoData
                 }
+                AppLogger.network.info("fetching currecnies success")
                 return CurrencyFetcherResponse(uniqueCurrencies: uniqueCurrencies, currencyPairs: domainPairs)
             }
             .eraseToAnyPublisher()
@@ -82,6 +92,7 @@ final class AlorCurrencyFetcher: CurrencyFetcherProtocol {
         
         return gateway.sendPurchaseRequestWithCombine(requestData: requestData)
             .map { result -> Bool in
+                AppLogger.network.info("sending purchase offer success")
                 return result
             }
             .eraseToAnyPublisher()

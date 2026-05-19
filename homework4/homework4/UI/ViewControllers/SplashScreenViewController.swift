@@ -101,7 +101,6 @@ private extension SplashScreenViewController {
     
     @objc
     func handleTimerEnd() {
-        //route()
         onFinishLoading?()
     }
 }
