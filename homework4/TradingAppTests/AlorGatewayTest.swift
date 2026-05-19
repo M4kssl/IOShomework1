@@ -176,6 +176,80 @@ final class AlorGatewayTest: XCTestCase {
         
         wait(for: [expectation], timeout: 1)
     }
+    
+    // MARK: sendPurchaseRequest
+    func test_sendPurchaseRequest() {
+        let currency = RandomlyGeneratedCurrency.generatePlaceholderCurrency()
+        let pair = CurrencyPair(firstCurrency: currency, secondCurrency: currency, exchangeRate: 1.0)
+        let offer = Offer(id: UUID(), currencyPair: pair, withDeviation: false)
+        let quantity = 10.0
+        let request = AlorPurchaseRequest(offer: offer, quantiy: quantity)
+        
+        var successCount = 0
+        var failureCount = 0
+        let iterations = 50
+        
+        apiClient.sendRequestResult = .failure(APIRequestError.WrongURL)
+        
+        let group = DispatchGroup()
+        
+        for _ in 0..<iterations {
+            group.enter()
+            sut.sendPurchaseRequest(requestData: request) { result in
+                if case .success = result {
+                    successCount += 1
+                } else {
+                    failureCount += 1
+                }
+                group.leave()
+            }
+        }
+        
+        group.wait(timeout: .now() + 5)
+        
+        XCTAssertGreaterThan(successCount, 0)
+        XCTAssertGreaterThan(failureCount, 0)
+    }
+    
+    // MARK: sendPurchaseRequestWithCombine
+    func test_sendPurchaseRequestWithCombine() {
+        let currency = RandomlyGeneratedCurrency.generatePlaceholderCurrency()
+        let pair = CurrencyPair(firstCurrency: currency, secondCurrency: currency, exchangeRate: 1.0)
+        let offer = Offer(id: UUID(), currencyPair: pair, withDeviation: false)
+        let quantity = 10.0
+        let request = AlorPurchaseRequest(offer: offer, quantiy: quantity)
+        
+        var successCount = 0
+        var failureCount = 0
+        let iterations = 50
+        
+        apiClient.sendRequestWithCombinePublisher = Fail(error: APIRequestError.WrongURL)
+            .eraseToAnyPublisher()
+        
+        let group = DispatchGroup()
+        
+        for _ in 0..<iterations {
+            group.enter()
+            sut.sendPurchaseRequestWithCombine(requestData: request)
+                .sink(receiveCompletion: { completion in
+                    switch completion {
+                    case .finished:
+                        break
+                    case .failure(let error):
+                        failureCount += 1
+                    }
+                }, receiveValue: { success in
+                    XCTAssertTrue(success)
+                    successCount += 1
+                })
+                .store(in: &cancellables)
+        }
+        
+        group.wait(timeout: .now() + 5)
+        
+        XCTAssertGreaterThan(successCount, 0)
+        XCTAssertGreaterThan(failureCount, 0)
+    }
 }
 
 private extension AlorGatewayTest {

@@ -13,12 +13,14 @@ final class APIClientMock: APIClientProtocol {
     var sendRequestResult: Result<Data?, Error>?
     var sendRequestCalled = false
     var capturedRequest: URLRequest?
-    
+    var requestShouldFail: Bool = false
     var sendRequestWithCombinePublisher: AnyPublisher<Data, Error>?
     
     func sendRequest(request: URLRequest, completionHandler: @escaping (Result<Data?, Error>) -> Void) {
         sendRequestCalled = true
         capturedRequest = request
+        if requestShouldFail {
+        }
         if let result = sendRequestResult {
             completionHandler(result)
         }
