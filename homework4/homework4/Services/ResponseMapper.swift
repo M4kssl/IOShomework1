@@ -7,11 +7,11 @@
 
 import Foundation
 
-protocol ResponseMapperProtocol {
+protocol AlorResponseMapperProtocol {
     func convertToDomainCurrency(_ serviceCurrency: [AlorCurrencyPair]) -> [CurrencyPair]
 }
 
-struct AlorResponseMapper: ResponseMapperProtocol {
+struct AlorResponseMapper: AlorResponseMapperProtocol {
     func convertToDomainCurrency(_ serviceCurrencies: [AlorCurrencyPair]) -> [CurrencyPair] {
         var result = [CurrencyPair]()
         var currencies = [String : RandomlyGeneratedCurrency]()

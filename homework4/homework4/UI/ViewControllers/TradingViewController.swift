@@ -28,11 +28,21 @@ final class TradingViewController: UIViewController {
     var onOpenSellerDetail: (() -> Void)?
     
     init(localCurrencies: [RandomlyGeneratedCurrency]) {
+        
+        let responseMapper = AlorResponseMapper()
+        let requestMapper = AlorRequestMapper()
+        let apiClient = AlorAPIClient()
+        let gateway = AlorGateway(apiClient: apiClient)
+        
         self.tradingService = TradingService(
             wallet: Wallet(currencies: localCurrencies),
             walletHandler: WalletHandler(),
             localCurrencies: localCurrencies,
-            currencyFetcher: AlorCurrencyFetcher()
+            currencyFetcher: AlorCurrencyFetcher(
+                gateway: gateway,
+                requestMapper: requestMapper,
+                responseMapper: responseMapper
+            )
         )
         
         let firstCurrency = tradingService.currencyPair.firstCurrency
@@ -206,7 +216,7 @@ private extension TradingViewController {
                !text.isEmpty,
                let tappedOffer = self.tappedOffer {
                 let quantity = Double(text) ?? .zero
-                self.tradingService.makePurchase(tappedOffer, quantity: quantity)
+                self.tradingService.makePurchase(tappedOffer, quantity: quantity, isCombineUsed: false)
                 self.tappedOffer = nil
             }
         }

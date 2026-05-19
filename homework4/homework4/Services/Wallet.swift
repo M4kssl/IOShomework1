@@ -70,7 +70,7 @@ final class Wallet: WalletProtocol {
         lock.lock()
         defer { lock.unlock() }
         
-        guard let currencyToSellOnHand = currenciesOnHand[currencyToSell.id] else { return }
+        guard let currencyToSellOnHand = currenciesOnHand[currencyToSell.id] else { throw WalletError.notEnoughtFounds }
         
         let conversionRate = Market.conversionRate(fromCurrency: currencyToSell, toCurrency: currencyToBuy)
         let quantityToSell = quantityToBuy / conversionRate

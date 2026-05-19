@@ -7,7 +7,11 @@
 
 import Foundation
 
-struct AlorRequestMapper {
+protocol AlorRequestMapperProtocol {
+    func mapPurchaseOfferRequest(offer: Offer, quantity: Double) -> AlorPurchaseRequest
+}
+
+struct AlorRequestMapper: AlorRequestMapperProtocol {
     func mapPurchaseOfferRequest(offer: Offer, quantity: Double) -> AlorPurchaseRequest {
         return AlorPurchaseRequest(offer: offer, quantiy: quantity)
     }

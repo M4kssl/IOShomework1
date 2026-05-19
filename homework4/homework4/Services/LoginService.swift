@@ -23,6 +23,7 @@ final class LoginService: LoginServiceProtocol {
     
     init(initialMode: LoginServiceMode) {
         mode = initialMode
+        
     }
     
     func previouslyLoggedUser() -> String? {

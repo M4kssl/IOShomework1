@@ -8,8 +8,20 @@
 import Foundation
 import Combine
 
-final class AlorGateway {
-    let apiClient = AlorAPIClient()
+protocol AlorGatewayProtocol {
+    func fetchCurrencyData(completionHandler: @escaping (Result<[AlorCurrencyPair]?, Error>) -> Void)
+    func sendPurchaseRequest(requestData: AlorPurchaseRequest, completionHandler: @escaping (Result<Bool, Error>) -> Void)
+    func fetchCurrencyDataWithCombine() -> AnyPublisher<[AlorCurrencyPair], Error>
+    func sendPurchaseRequestWithCombine(requestData: AlorPurchaseRequest) -> AnyPublisher<Bool, Error>
+}
+
+
+final class AlorGateway: AlorGatewayProtocol {
+    let apiClient: APIClientProtocol
+    
+    init(apiClient: APIClientProtocol) {
+        self.apiClient = apiClient
+    }
     
     func fetchCurrencyData(completionHandler: @escaping (Result<[AlorCurrencyPair]?, Error>) -> Void) {
         guard let url = URL(string: "https://apidev.alor.ru/md/v2/Securities?sector=CURR&format=Simple") else {
