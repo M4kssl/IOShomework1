@@ -18,25 +18,31 @@ final class AlorAPIClient: APIClientProtocol {
     let urlSession = URLSession.shared
     
     func sendRequest(request: URLRequest, completionHandler: @escaping (Result<Data?, Error>) -> Void) {
+        AppLogger.network.info("Sending request: \(request)")
         guard NetworkMonitor.shared.isConnected else {
+            AppLogger.network.error("Sending request failed due to no internet connection")
             completionHandler(.failure(NetworkError.NoIntertnetConnection))
             return
         }
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error {
+                AppLogger.network.error("Sending request failed due to unexpected error: \(error)")
                 completionHandler(.failure(error))
                 return
             }
             
+            AppLogger.network.info("Sending request response: \(response)")
             if let httpResponse = response as? HTTPURLResponse {
                 let clientErrorCodeRange = 400...499
                 if clientErrorCodeRange.contains(httpResponse.statusCode) {
+                    AppLogger.network.error("Sendin request failed due to client error")
                     completionHandler(.failure(APIRequestError.ClientError))
                 }
             }
             
             guard let data else {
+                AppLogger.network.error("Sending request failed due to no data rcieved: \(response)")
                 completionHandler(.failure(APIRequestError.NoData))
                 return
             }
@@ -48,15 +54,19 @@ final class AlorAPIClient: APIClientProtocol {
     }
     
     func sendRequestWithCombine(request: URLRequest) -> AnyPublisher<Data, Error> {
+        AppLogger.network.info("Sending request: \(request)")
         guard NetworkMonitor.shared.isConnected else {
+            AppLogger.network.error("Sending request failed due to no internet connection")
             return Fail(error: NetworkError.NoIntertnetConnection).eraseToAnyPublisher()
         }
         
         return URLSession.shared.dataTaskPublisher(for: request)
             .tryMap { data, response in
+                AppLogger.network.info("Sending request response: \(response)")
                 if let httpResponse = response as? HTTPURLResponse {
                     let clientErrorCodeRange = 400...499
                     if clientErrorCodeRange.contains(httpResponse.statusCode) {
+                        AppLogger.network.error("Sending request failed due to client error")
                         throw APIRequestError.ClientError
                     }
                 }
