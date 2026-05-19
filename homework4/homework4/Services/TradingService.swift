@@ -88,6 +88,7 @@ final class TradingService: TradingServiceProtocol {
     }
     
     func addInitialBalanceForNetworkCurrencies() {
+        AppLogger.trading.info("Adding initial balance for network currencies")
         guard let networkCurrencies else { return }
         for currency in networkCurrencies {
             walletHandler.addCurrency(currency, quantity: 10000, wallet: wallet)
@@ -111,6 +112,7 @@ final class TradingService: TradingServiceProtocol {
     }
     
     func currentOffersSnapshot() -> [Offer] {
+        AppLogger.trading.debug("currentOffersSnapshot called")
         var offerArray = offers
         if currencyPair.firstCurrency.id != UUID.empty || currencyPair.secondCurrency.id != UUID.empty {
             offerArray = filteredOffers
@@ -119,13 +121,16 @@ final class TradingService: TradingServiceProtocol {
     }
     
     func updateAvalibleNetworkCurrencies() {
+        AppLogger.trading.info("Update avalible network currencies started")
         currencyFetcher.fetchUniqueCurrenicesAndPairs(completionHandler: ) { [weak self] result in
             switch result {
             case .success(let fetcherResponse):
                 self?.setNewNetworkCurrencyOffers(pairs: fetcherResponse.currencyPairs)
                 self?.setNewNetworkCurrencuies(newCurrencies: fetcherResponse.uniqueCurrencies)
                 self?.delegate?.offersUpdated()
+                AppLogger.trading.info("Update avalible network currencies finished successfully")
             case .failure(let error):
+                AppLogger.trading.error("Update avalible network currencies failed: \(error)")
                 DispatchQueue.main.async {
                     self?.delegate?.handleOperationError(error: error)
                 }
@@ -134,11 +139,13 @@ final class TradingService: TradingServiceProtocol {
     }
     
     func updateAvalibleNetworkCurrenciesWithCombine() {
+        AppLogger.trading.info("Update avalible network currencies started")
         currencyFetcher.fetchUniqueCurrenicesAndPairsWithCombine()
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { [weak self] completion in
                 switch completion {
                 case .failure(let error):
+                    AppLogger.trading.error("Update avalible network currencies failed: \(error)")
                     self?.delegate?.handleOperationError(error: error)
                 default:
                     break
@@ -147,27 +154,32 @@ final class TradingService: TradingServiceProtocol {
                 self?.setNewNetworkCurrencyOffers(pairs: result.currencyPairs)
                 self?.setNewNetworkCurrencuies(newCurrencies: result.uniqueCurrencies)
                 self?.delegate?.offersUpdated()
+                AppLogger.trading.info("Update avalible network currencies finished successfully")
             })
             .store(in: &cancellables)
     }
     
     func makePurchase(_ offer: Offer, quantity: Double, isCombineUsed: Bool = false) {
+        AppLogger.trading.info("Make purchase requested")
         let quantityToSell = quantity / offer.exchangeRate
         do {
             try walletHandler.withdrawCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: wallet)
         } catch {
+            AppLogger.trading.info("Make purchase failed due to withdrawal error: \(error)")
             self.delegate?.handleOperationError(error: error)
             return
         }
         walletHandler.addCurrency(offer.currencyPair.secondCurrency, quantity: quantity, wallet: wallet)
         if isCombineUsed {
             sendPurchaseOfferWithCombine(offer: offer, quantityToBuy: quantity, quantityToSell: quantityToSell)
+            
         } else {
             sendPurchaseOffer(offer: offer, quantityToBuy: quantity, quantityToSell: quantityToSell)
         }
     }
     
     func updateCurrencies(newCurrencies: [RandomlyGeneratedCurrency]) {
+        AppLogger.trading.info("updateCurrencies called")
         let newLocalCurrencies = newCurrencies.filter { !$0.isFromNet }
         let newNetworkCurrencies = newCurrencies.filter { $0.isFromNet }
         
@@ -178,12 +190,14 @@ final class TradingService: TradingServiceProtocol {
     func setNewCurrencyPair(newPair: CurrencyPair) {
         lock.lock()
         defer { lock.unlock() }
+        AppLogger.trading.debug("setNewCurrencyPair called")
         currencyPair = newPair
     }
     
     func generateLocalOffers() {
         lock.lock()
         defer { lock.unlock() }
+        AppLogger.trading.debug("generateLocalOffers called")
         offers = offers.filter { $0.isNetworkOffer }
         for firstCurrency in localCurrencies {
             for secondCurrency in localCurrencies {
@@ -203,13 +217,16 @@ private extension TradingService {
     func setNewNetworkCurrencuies(newCurrencies: [RandomlyGeneratedCurrency]) {
         lock.lock()
         defer { lock.unlock() }
+        AppLogger.trading.debug("setNewNetworkCurrencuies called")
         networkCurrencies = newCurrencies
     }
     
     func sendPurchaseOffer(offer: Offer, quantityToBuy: Double, quantityToSell: Double) {
+        AppLogger.trading.info("sending purchase offer")
         currencyFetcher.sendPurchaseOffer(offer: offer, quantity: quantityToBuy) { [self] result in
             switch result {
             case .failure(let error):
+                AppLogger.trading.error("sending purchase offer failed: \(error)")
                 DispatchQueue.main.async {
                     self.delegate?.handleOperationError(error: error)
                 }
@@ -217,6 +234,7 @@ private extension TradingService {
                     try self.walletHandler.withdrawCurrency(offer.currencyPair.secondCurrency, quantity: quantityToSell, wallet: self.wallet)
                     self.walletHandler.addCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
                 } catch {
+                    AppLogger.trading.error("sending purchase offer rollback failed due to withdrawal error: \(error)")
                     DispatchQueue.main.async {
                         self.delegate?.handleOperationError(error: error)
                     }
@@ -230,23 +248,27 @@ private extension TradingService {
                         newFirstCurrencyQuantity: newFirstCurrencyQuantity,
                         newSecondCurrencyQuantity: newSecondCurrencyQuantity
                     )
+                    AppLogger.trading.info("sending purchase offer success")
                 }
             }
         }
     }
     
     func sendPurchaseOfferWithCombine(offer: Offer, quantityToBuy: Double, quantityToSell: Double) {
+        AppLogger.trading.info("sending purchase offer")
         currencyFetcher.sendPurchaseOfferWithCombine(offer: offer, quantity: quantityToBuy)
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { [weak self] completion in
                 guard let self = self else { return }
                 switch completion {
                 case .failure(let error):
+                    AppLogger.trading.error("sending purchase offer failed: \(error)")
                     self.delegate?.handleOperationError(error: error)
                     do {
                         try self.walletHandler.withdrawCurrency(offer.currencyPair.secondCurrency, quantity: quantityToSell, wallet: self.wallet)
                         self.walletHandler.addCurrency(offer.currencyPair.firstCurrency, quantity: quantityToSell, wallet: self.wallet)
                     } catch {
+                        AppLogger.trading.error("sending  offer rollback failed due to withdrawal error: \(error)")
                         self.delegate?.handleOperationError(error: error)
                     }
                 default:
@@ -261,12 +283,14 @@ private extension TradingService {
                     newFirstCurrencyQuantity: newFirstCurrencyQuantity,
                     newSecondCurrencyQuantity: newSecondCurrencyQuantity
                 )
+                AppLogger.trading.info("sending purchase offer success")
             }).store(in: &cancellables)
     }
     
     func updateOffer(offerToUpdate offer: Offer, newFirstCurrencyQuantity: Double, newSecondCurrencyQuantity: Double) {
         lock.lock()
         defer { lock.unlock() }
+        AppLogger.trading.info("update offer called")
         if let index = offers.firstIndex(where: { $0.id == offer.id }) {
             let newOffer = Offer.changeQuantityForCurrencies(
                 offer: offer,
@@ -279,6 +303,7 @@ private extension TradingService {
     }
     
     func updateFilteredOffers() {
+        AppLogger.trading.debug("update filtered offers called")
         var suitableOffers = offers
         if currencyPair.firstCurrency.id != UUID.empty {
             suitableOffers = suitableOffers.filter { $0.currencyPair.firstCurrency.id == currencyPair.firstCurrency.id }
@@ -293,6 +318,7 @@ private extension TradingService {
     func setNewNetworkCurrencyOffers(pairs: [CurrencyPair]) {
         lock.lock()
         defer { lock.unlock() }
+        AppLogger.trading.debug("update filtered offer called")
         offers = offers.filter { !$0.isNetworkOffer }
         for pair in pairs {
             let offer = Offer(id: UUID(), currencyPair: pair, isNetworkOffer: true)
@@ -303,6 +329,7 @@ private extension TradingService {
     func setNewLocalCurrencuies(newCurrencies: [RandomlyGeneratedCurrency]) {
         lock.lock()
         defer { lock.unlock() }
+        AppLogger.trading.debug("update filtered offer called")
         localCurrencies = newCurrencies
     }
 }
