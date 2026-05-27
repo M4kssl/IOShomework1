@@ -78,6 +78,7 @@ final class BotViewController: UIViewController {
     private let resetBarButton = UIBarButtonItem()
     private let chooeseRandomCurrencyBarButton = UIBarButtonItem()
     private let openWalletBarButton = UIBarButtonItem()
+    private let openHeatmapBarButton = UIBarButtonItem()
     private let market: MarketProtocol
     private let wallet: WalletProtocol
     
@@ -87,6 +88,7 @@ final class BotViewController: UIViewController {
     var onOpenCurrencyConversion: (([RandomlyGeneratedCurrency], [RandomlyGeneratedCurrency]) -> Void)?
     var onOpenWallet: ((MarketProtocol, WalletProtocol) -> Void)?
     var onOpenChart: (() -> Void)?
+    var onOpenHeatmap: (() -> Void)?
     var onOpenFavoriteCurrencies: (([RandomlyGeneratedCurrency], [RandomlyGeneratedCurrency]) -> Void)?
     
     init(marketCurrencies: [UUID : RandomlyGeneratedCurrency]) {
@@ -149,6 +151,7 @@ private extension BotViewController {
         setupOpenWalletBarButton()
         setupNavigationItem()
         setupOpenChartButton()
+        setupOpenHeatmapBarButton()
     }
     
     func setupOpenChartButton() {
@@ -176,7 +179,7 @@ private extension BotViewController {
     }
     
     func setupNavigationItem() {
-        navigationItem.leftBarButtonItem = resetBarButton
+        navigationItem.leftBarButtonItems = [resetBarButton, openHeatmapBarButton]
         navigationItem.rightBarButtonItems = [chooeseRandomCurrencyBarButton, openWalletBarButton]
     }
     
@@ -245,6 +248,13 @@ private extension BotViewController {
                 )
             )
         }
+    }
+    
+    func setupOpenHeatmapBarButton() {
+        openHeatmapBarButton.title = DefaultTexts.heatmapButton
+        openHeatmapBarButton.target = self
+        openHeatmapBarButton.image = UIImage(systemName: "square.grid.2x2")
+        openHeatmapBarButton.action = #selector(handleOpenHeatmapButtonTap)
     }
     
     func addCurrenciesToChoose() {
@@ -511,6 +521,7 @@ private extension BotViewController {
         updateViewFromModel()
     }
     
+    
     @objc
     func handleChooseRandomCurrencyTap() {
         var allCurrencies = market.getArrayOfCurrencies()
@@ -527,14 +538,17 @@ private extension BotViewController {
     
     @objc
     func handleOpenChartButtonTap() {
-        //routeToChart()
         onOpenChart?()
     }
     
     @objc
     func handleOpenWalletBarButton() {
-        //routeToWallet()
         onOpenWallet?(market, wallet)
+    }
+    
+    @objc
+    func handleOpenHeatmapButtonTap() {
+        onOpenHeatmap?()
     }
     
     func centeredAttributedString(_ string: String, fontSize: CGFloat) -> NSAttributedString {
@@ -612,7 +626,6 @@ extension BotViewController: CurrencyConversionDelegate, FavoriteCurrenciesDeleg
     func showAllCurrencies(allCurrencies: [RandomlyGeneratedCurrency]) {
         market.updateCurrencies(with: allCurrencies)
         updateViewFromModel()
-        //routeToCurrencyConversion()
         onOpenCurrencyConversion?(market.getArrayOfCurrencies(), traderBot.chosenCurrencies)
     }
 }
@@ -683,5 +696,6 @@ private extension BotViewController {
         static let openChartButton = "Chart"
         static let chooseRandom = "Randomize"
         static let mainTitle = "Currencies"
+        static let heatmapButton = "Heatmap"
     }
 }

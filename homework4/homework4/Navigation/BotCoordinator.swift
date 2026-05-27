@@ -27,6 +27,7 @@ final class BotCoordinator: Coordinator {
         openWalletSetup(botViewController: botViewController)
         openConversionSetup(botViewController: botViewController)
         openFavoriteSetup(botViewController: botViewController)
+        openHeatmapButton(botViewController: botViewController)
         navigationController.pushViewController(botViewController, animated: false)
     }
 }
@@ -92,6 +93,13 @@ private extension BotCoordinator {
             self.addChildCoordinator(favoriteCoordinator)
             favoriteCoordinator.start()
         }
-        
+    }
+    
+    func openHeatmapButton(botViewController: BotViewController) {
+        botViewController.onOpenHeatmap = { [weak self] in
+            guard let self else { return }
+            let heatmapController = HeatmapAssembly().assembly()
+            self.navigationController.present(heatmapController, animated: true)
+        }
     }
 }
