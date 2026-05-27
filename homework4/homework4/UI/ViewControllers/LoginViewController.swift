@@ -14,6 +14,7 @@ final class LoginViewController: UIViewController {
     private var cancellables = Set<AnyCancellable>()
     
     var onLoginSuccess: (() -> Void)?
+    var onCantLogInTapped: (() -> Void)?
     
     @Published var currentUsernameText: String = ""
     @Published var currentPasswordText: String = ""
@@ -40,6 +41,16 @@ final class LoginViewController: UIViewController {
     
     private let registerModeButton: UIButton = {
         $0.setTitle("Register", for: .normal)
+        $0.layer.borderWidth = BorderWidth.thin
+        $0.layer.cornerRadius = CornerRadius.small
+        $0.backgroundColor = .white
+        $0.setTitleColor(.systemBlue, for: .selected)
+        $0.setTitleColor(.black, for: .normal)
+        return $0
+    } (UIButton())
+    
+    private let cantLogInButton: UIButton = {
+        $0.setTitle("Can't log in", for: .normal)
         $0.layer.borderWidth = BorderWidth.thin
         $0.layer.cornerRadius = CornerRadius.small
         $0.backgroundColor = .white
@@ -92,6 +103,7 @@ private extension LoginViewController {
         view.addSubview(passwordTextField)
         view.addSubview(warningLabel)
         view.addSubview(proceedButton)
+        view.addSubview(cantLogInButton)
         
         view.addSubview(modeStackView)
         modeStackView.addArrangedSubview(loginModeButton)
@@ -106,6 +118,7 @@ private extension LoginViewController {
         setupRegisterModeButton()
         setupUsernameTextField()
         setupPasswordTextField()
+        setupCantLogInButton()
     }
     
     func setupProceedButton() {
@@ -120,12 +133,17 @@ private extension LoginViewController {
         registerModeButton.addTarget(self, action: #selector(handleModeButtonTap), for: .touchUpInside)
     }
     
+    func setupCantLogInButton() {
+        cantLogInButton.addTarget(self, action: #selector(handleCantLogInTap), for: .touchUpInside)
+    }
+    
     func setConstraints() {
         setUsernameTextViewConstraints()
         setPasswordTextViewConstraints()
         setWarningLabelConstraints()
         setProceedButtonConstraints()
         setModeStackViewConstraints()
+        setCantLogInButtonConstraints()
     }
     
     func setupUsernameTextField() {
@@ -191,6 +209,15 @@ private extension LoginViewController {
         ])
     }
     
+    func setCantLogInButtonConstraints() {
+        cantLogInButton.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            cantLogInButton.topAnchor.constraint(equalTo: modeStackView.bottomAnchor, constant: ConstraintSpacing.standard),
+            cantLogInButton.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: ConstraintSpacing.large),
+            cantLogInButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -ConstraintSpacing.large)
+        ])
+    }
+    
     func changeUsernameLenghWarningVisibility(isMaxLengthExeeded: Bool) {
         warningLabel.isHidden = !isMaxLengthExeeded
     }
@@ -240,7 +267,6 @@ private extension LoginViewController {
             let userCredentials = UserCredentials(username: username, password: password)
             try loginService.tryLogUserIn(userCredentials: userCredentials)
             SessionManager.shared.beginSession(username: userCredentials.username)
-            //routeToMainScreen()
             onLoginSuccess?()
         } catch {
             handleLoginError(error)
@@ -256,6 +282,11 @@ private extension LoginViewController {
         }
         currentMode = loginService.mode
         updateModeButtonsState(lastTappedButton: sender)
+    }
+    
+    @objc
+    func handleCantLogInTap() {
+        onCantLogInTapped?()
     }
 }
 
@@ -305,12 +336,6 @@ private extension LoginViewController {
         )
         botViewController.title = "Bot"
         
-//        tradingViewController.tabBarItem = UITabBarItem(
-//            title: "Trading",
-//            image: UIImage(systemName: "bitcoinsign.bank.building")
-//            , tag: 1
-//        )
-//        tradingViewController.title = "Trading"
         let tradingNavigationController = UINavigationController()
         let tradingCoordinator = TradingCoordinator(navigationController: tradingNavigationController)
         tradingCoordinator.start()
