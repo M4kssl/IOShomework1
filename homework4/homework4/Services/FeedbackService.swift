@@ -14,8 +14,6 @@ final class FeedbackService: ObservableObject {
     @Published var isAgreementChecked = false
     @Published var isUsernameValid = true
     @Published var isFeedbackValid = true
-    @Published var wasUsernameFocused = false
-    @Published var wasFeedbackFocused = false
     
     func sendFeedback() {
         AppLogger.login.info("Feedback sent")
