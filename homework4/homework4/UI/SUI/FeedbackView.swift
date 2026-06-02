@@ -81,7 +81,6 @@ struct Feedback: View {
         .cornerRadius(CornerRadius.standard)
         .shadow(radius: 20)
         .transition(.scale)
-        .animation(.default, value: showPrivacyPolicy)
     }
     
     var ssendButton: some View {
