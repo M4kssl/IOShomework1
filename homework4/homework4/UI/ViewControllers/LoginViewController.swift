@@ -59,6 +59,8 @@ final class LoginViewController: UIViewController {
         return $0
     } (UIButton())
     
+    private let picker = IssuePicker()
+    
     private let proceedButton: UIButton = {
         $0.layer.backgroundColor = UIColor.systemBlue.cgColor
         $0.layer.borderWidth = BorderWidth.standard
@@ -315,42 +317,6 @@ private extension LoginViewController {
             .receive(on: DispatchQueue.main)
             .assign(to: \.isEnabled, on: proceedButton)
             .store(in: &cancellables)
-    }
-}
-
-// MARK: - Routing
-private extension LoginViewController {
-    func routeToMainScreen() {
-        let market = Market(amountOfCurrencies: 5)
-        let marketCurrencies = market.getCurrenciesSnapshot()
-        let marketCurrenciesArray = market.getArrayOfCurrencies()
-        let botViewController = BotViewController(marketCurrencies: marketCurrencies)
-        let tradingViewController = TradingViewController(localCurrencies: marketCurrenciesArray)
-        let settingsViewController = SettingsViewController()
-        let tabBarController = UITabBarController()
-        
-        botViewController.tabBarItem = UITabBarItem(
-            title: "Bot",
-            image: UIImage(systemName: "brain")
-            , tag: 0
-        )
-        botViewController.title = "Bot"
-        
-        let tradingNavigationController = UINavigationController()
-        let tradingCoordinator = TradingCoordinator(navigationController: tradingNavigationController)
-        tradingCoordinator.start()
-        
-        settingsViewController.tabBarItem = UITabBarItem(
-            title: "Settings",
-            image: UIImage(systemName: "gear")
-            , tag: 3
-        )
-        settingsViewController.title = "Settings"
-        
-        let botNavigationController = UINavigationController(rootViewController: botViewController)
-        let settingsNavigationController = UINavigationController(rootViewController: settingsViewController)
-        tabBarController.viewControllers = [botNavigationController, tradingNavigationController, settingsNavigationController]
-        navigationController?.replaceRootViewController(with: tabBarController)
     }
 }
 

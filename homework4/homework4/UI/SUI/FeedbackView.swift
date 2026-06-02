@@ -27,14 +27,21 @@ struct Feedback: View {
                 usernameTextField
                 feedbackLabel
                 feedbackTextEditor
+                issuePickerView
                 termsAgreementCheckBox
-                ssendButton
+                sendButton
             }
             .padding()
             if showPrivacyPolicy {
                 privacyPolicyText
             }
         }
+    }
+    
+    var issuePickerView: some View {
+        IssuePickerWrapper(issues: $feedbackService.issues)
+            .frame(maxHeight: 64)
+            .padding()
     }
     
     var termsAgreementCheckBox: some View {
@@ -81,10 +88,9 @@ struct Feedback: View {
         .cornerRadius(CornerRadius.standard)
         .shadow(radius: 20)
         .transition(.scale)
-        .animation(.default, value: showPrivacyPolicy)
     }
     
-    var ssendButton: some View {
+    var sendButton: some View {
         Button(action: {
             feedbackService.sendFeedback()
             onDismiss?()

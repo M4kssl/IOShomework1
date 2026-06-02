@@ -7,15 +7,27 @@
 
 import Foundation
 
+protocol FeedbackServiceProtocol {
+    var username: String { get set }
+    var feedback: String { get set }
+    var isAgreementChecked: Bool { get set }
+    var isUsernameValid: Bool { get set }
+    var isFeedbackValid: Bool { get set }
+    var issues: Set<Issue> { get set }
+    
+    func sendFeedback()
+    func validateUsername()
+    func validateFeedback()
+}
+
 // Коммент про диалог про использование viewModel с wrapper'ом @StateObject + ObservableObject без combine
-final class FeedbackService: ObservableObject {
+final class FeedbackService: FeedbackServiceProtocol, ObservableObject {
     @Published var username = ""
     @Published var feedback = ""
     @Published var isAgreementChecked = false
     @Published var isUsernameValid = true
     @Published var isFeedbackValid = true
-    @Published var wasUsernameFocused = false
-    @Published var wasFeedbackFocused = false
+    @Published var issues = Set<Issue>()
     
     func sendFeedback() {
         AppLogger.login.info("Feedback sent")
@@ -151,6 +163,25 @@ extension FeedbackService {
 
                 If we make material changes, we will notify users by updating the effective date or by providing notice in the app.
                """
-        
+    }
+}
+
+enum Issue: Int, CaseIterable {
+    case botIssue
+    case p2pSellerIssue
+    case walletIssue
+    case other
+    
+    var title: String {
+        switch self {
+        case .botIssue:
+            return "Issue with bot"
+        case .p2pSellerIssue:
+            return "Seller doesn't reply"
+        case .walletIssue:
+            return "Issue with balance"
+        case .other:
+            return "Other issue"
+        }
     }
 }
