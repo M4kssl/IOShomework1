@@ -87,7 +87,6 @@ struct Feedback: View {
         .background(Color.white)
         .cornerRadius(CornerRadius.standard)
         .shadow(radius: 20)
-        .transition(.scale)
     }
     
     var sendButton: some View {
