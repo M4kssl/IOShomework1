@@ -11,6 +11,9 @@ import SwiftUI
 struct Feedback: View {
     @StateObject var feedbackService = FeedbackService()
     @State private var showPrivacyPolicy = false
+    @FocusState private var focusedField: FocusedField?
+    @State private var wasUsernameFocused = false
+    @State private var wasFeedbackFocused = false
     
     let onDismiss: (() -> Void)?
     
@@ -21,26 +24,11 @@ struct Feedback: View {
             VStack {
                 Text("Give us your feedback")
                     .font(.headline)
-                TextField("Username", text: $feedbackService.username)
-                    .textFieldStyle(.roundedBorder)
-                    .background(.white)
-                Text("Feedback:")
-                    .frame( maxWidth: .infinity, alignment: .leading)
-                TextEditor(text: $feedbackService.feedback)
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                    .background(.white)
+                usernameTextField
+                feedbackLabel
+                feedbackTextEditor
                 termsAgreementCheckBox
-                Button(action: {
-                    feedbackService.sendFeedback()
-                    onDismiss?()
-                }) {
-                    Text("Send")
-                        .foregroundColor(feedbackService.username.isEmpty || feedbackService.feedback.isEmpty || !feedbackService.isAgreementChecked ? .gray : .white)
-                }
-                .padding()
-                .disabled(feedbackService.username.isEmpty || feedbackService.feedback.isEmpty || !feedbackService.isAgreementChecked)
-                .background(.blue)
-                .cornerRadius(CornerRadius.small)
+                ssendButton
             }
             .padding()
             if showPrivacyPolicy {
@@ -75,7 +63,7 @@ struct Feedback: View {
                 .font(.title)
                 .padding()
             ScrollView {
-                Text(feedbackService.policyText)
+                Text(FeedbackService.Texts.policyText)
                     .padding()
             }
             Button("Close") {
@@ -92,7 +80,81 @@ struct Feedback: View {
         .background(Color.white)
         .cornerRadius(CornerRadius.standard)
         .shadow(radius: 20)
-        .transition(.scale)
-        .animation(.default, value: showPrivacyPolicy)
+    }
+    
+    var ssendButton: some View {
+        Button(action: {
+            feedbackService.sendFeedback()
+            onDismiss?()
+        }) {
+            Text("Send")
+                .foregroundColor(!feedbackService.isFeedbackValid
+                                 || !feedbackService.isUsernameValid
+                                 || !feedbackService.isAgreementChecked
+                                 || !wasFeedbackFocused
+                                 || !wasUsernameFocused ? .gray : .white)
+        }
+        .padding()
+        .disabled(!feedbackService.isFeedbackValid
+                  || !feedbackService.isUsernameValid
+                  || !feedbackService.isAgreementChecked
+                  || !wasFeedbackFocused
+                  || !wasUsernameFocused)
+        .background(.blue)
+        .cornerRadius(CornerRadius.small)
+    }
+    
+    var usernameTextField: some View {
+        VStack {
+            TextField("Username", text: $feedbackService.username)
+                .textFieldStyle(.roundedBorder)
+                .background(.white)
+                .focused($focusedField, equals: .username)
+                .onChange(of: focusedField) { [self] newValue in
+                    if newValue != .username {
+                        feedbackService.validateUsername()
+                    } else if newValue == .username {
+                        self.wasUsernameFocused = true
+                    }
+                }
+            if focusedField != .username && !feedbackService.isUsernameValid && wasUsernameFocused {
+                Text(FeedbackService.Texts.usernameValidationError)
+                    .foregroundStyle(.red)
+                    .font(.footnote)
+            }
+        }
+    }
+    
+    var feedbackLabel: some View {
+        Text("Feedback:")
+            .frame( maxWidth: .infinity, alignment: .leading)
+    }
+    
+    var feedbackTextEditor: some View {
+        VStack {
+            TextEditor(text: $feedbackService.feedback)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .background(.white)
+                .focused($focusedField, equals: .feedback)
+                .onChange(of: focusedField) { newValue in
+                    if newValue != .feedback {
+                        feedbackService.validateFeedback()
+                    } else if newValue == .feedback {
+                        wasFeedbackFocused = true
+                    }
+                }
+            if focusedField != .feedback && !feedbackService.isFeedbackValid && wasFeedbackFocused {
+                Text(FeedbackService.Texts.feedbackValidationError)
+                    .foregroundStyle(.red)
+                    .font(.footnote)
+            }
+        }
+    }
+}
+
+private extension Feedback {
+    enum FocusedField {
+        case username
+        case feedback
     }
 }
