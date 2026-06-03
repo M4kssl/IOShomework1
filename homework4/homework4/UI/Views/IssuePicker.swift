@@ -175,34 +175,6 @@ private extension IssuePicker {
             otherIssueButton.topAnchor.constraint(equalTo: lowerHorisontalStack.topAnchor),
             otherIssueButton.bottomAnchor.constraint(equalTo: lowerHorisontalStack.bottomAnchor)
         ])
-        
-//        if let botLabel = botIssueButton.titleLabel {
-//            NSLayoutConstraint.activate([
-//                botIssueButton.topAnchor.constraint(equalTo: botLabel.topAnchor),
-//                botIssueButton.bottomAnchor.constraint(equalTo: botLabel.bottomAnchor)
-//            ])
-//        }
-//        
-//        if let walletLabel = walletIssueButton.titleLabel {
-//            NSLayoutConstraint.activate([
-//                walletIssueButton.topAnchor.constraint(equalTo: walletLabel.topAnchor),
-//                walletIssueButton.bottomAnchor.constraint(equalTo: walletLabel.bottomAnchor)
-//            ])
-//        }
-//        
-//        if let sellerLabel = sellerIssueButton.titleLabel {
-//            NSLayoutConstraint.activate([
-//                sellerIssueButton.topAnchor.constraint(equalTo: sellerLabel.topAnchor),
-//                sellerIssueButton.bottomAnchor.constraint(equalTo: sellerLabel.bottomAnchor)
-//            ])
-//        }
-        
-        if let otherLabel = otherIssueButton.titleLabel {
-            NSLayoutConstraint.activate([
-                otherIssueButton.topAnchor.constraint(equalTo: otherLabel.topAnchor),
-                otherIssueButton.bottomAnchor.constraint(equalTo: otherLabel.bottomAnchor)
-            ])
-        }
     }
 }
 
