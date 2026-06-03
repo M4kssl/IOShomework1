@@ -40,7 +40,6 @@ struct Feedback: View {
     
     var issuePickerView: some View {
         IssuePickerWrapper(issues: $feedbackService.issues)
-            .frame(maxHeight: 84)
     }
     
     var termsAgreementCheckBox: some View {

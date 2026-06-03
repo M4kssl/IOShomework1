@@ -22,7 +22,8 @@ struct IssuePickerWrapper: UIViewRepresentable {
     func makeUIView(context: Context) -> some UIView {
         let issuePicker = IssuePicker()
         issuePicker.delegate = context.coordinator
-        
+        issuePicker.setContentHuggingPriority(.required, for: .vertical)
+        issuePicker.setContentCompressionResistancePriority(.required, for: .vertical)
         return issuePicker
     }
     

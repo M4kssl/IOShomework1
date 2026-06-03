@@ -20,6 +20,8 @@ final class IssuePicker: UIView {
         $0.setTitle(Issue.botIssue.title, for: .selected)
         $0.setTitleColor(.black, for: .normal)
         $0.setTitleColor(.black, for: .selected)
+        $0.setContentHuggingPriority(.defaultHigh, for: .vertical)
+        $0.setContentCompressionResistancePriority(.required, for: .vertical)
         return $0
     } (UIButton())
     
@@ -30,6 +32,8 @@ final class IssuePicker: UIView {
         $0.setTitle(Issue.p2pSellerIssue.title, for: .selected)
         $0.setTitleColor(.black, for: .normal)
         $0.setTitleColor(.black, for: .selected)
+        $0.setContentHuggingPriority(.defaultHigh, for: .vertical)
+        $0.setContentCompressionResistancePriority(.required, for: .vertical)
         return $0
     } (UIButton())
     
@@ -40,6 +44,8 @@ final class IssuePicker: UIView {
         $0.setTitle(Issue.walletIssue.title, for: .selected)
         $0.setTitleColor(.black, for: .normal)
         $0.setTitleColor(.black, for: .selected)
+        $0.setContentHuggingPriority(.required, for: .vertical)
+        $0.setContentCompressionResistancePriority(.required, for: .vertical)
         return $0
     } (UIButton())
     
@@ -50,6 +56,8 @@ final class IssuePicker: UIView {
         $0.setTitle(Issue.other.title, for: .selected)
         $0.setTitleColor(.black, for: .normal)
         $0.setTitleColor(.black, for: .selected)
+        $0.setContentHuggingPriority(.required, for: .vertical)
+        $0.setContentCompressionResistancePriority(.required, for: .vertical)
         return $0
     } (UIButton())
     
@@ -57,6 +65,8 @@ final class IssuePicker: UIView {
         $0.axis = .horizontal
         $0.distribution = .equalSpacing
         $0.alignment = .leading
+        $0.setContentHuggingPriority(.required, for: .vertical)
+        $0.setContentCompressionResistancePriority(.required, for: .vertical)
         return $0
     } (UIStackView())
     
@@ -64,6 +74,19 @@ final class IssuePicker: UIView {
         $0.axis = .horizontal
         $0.distribution = .equalSpacing
         $0.alignment = .leading
+        $0.setContentHuggingPriority(.required, for: .vertical)
+        $0.setContentCompressionResistancePriority(.required, for: .vertical)
+
+        return $0
+    } (UIStackView())
+    
+    private let verticalStack: UIStackView = {
+        $0.axis = .vertical
+        $0.distribution = .fillEqually
+        $0.alignment = .leading
+        $0.spacing = StackViewSpacing.extraSmall
+        $0.setContentHuggingPriority(.required, for: .vertical)
+        $0.setContentCompressionResistancePriority(.required, for: .vertical)
         return $0
     } (UIStackView())
    
@@ -82,13 +105,18 @@ final class IssuePicker: UIView {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+    
+    override var intrinsicContentSize: CGSize {
+        verticalStack.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
+    }
 }
 
 // MARK: - Private Methods
 private extension IssuePicker {
     func addSubviews() {
-        addSubview(upperHorisontalStack)
-        addSubview(lowerHorisontalStack)
+        addSubview(verticalStack)
+        verticalStack.addArrangedSubview(upperHorisontalStack)
+        verticalStack.addArrangedSubview(lowerHorisontalStack)
         
         upperHorisontalStack.addArrangedSubview(botIssueButton)
         upperHorisontalStack.addArrangedSubview(walletIssueButton)
@@ -109,18 +137,72 @@ private extension IssuePicker {
     }
     
     func setConstraints() {
+        verticalStack.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            verticalStack.topAnchor.constraint(equalTo: topAnchor),
+            verticalStack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            verticalStack.trailingAnchor.constraint(equalTo: trailingAnchor),
+            verticalStack.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+        
         upperHorisontalStack.translatesAutoresizingMaskIntoConstraints = false
         lowerHorisontalStack.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            upperHorisontalStack.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: ConstraintSpacing.standard),
-            upperHorisontalStack.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: ConstraintSpacing.standard),
-            upperHorisontalStack.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -ConstraintSpacing.standard),
+            upperHorisontalStack.topAnchor.constraint(equalTo: verticalStack.topAnchor),
+            upperHorisontalStack.leadingAnchor.constraint(equalTo: verticalStack.leadingAnchor),
+            upperHorisontalStack.trailingAnchor.constraint(equalTo: verticalStack.trailingAnchor),
             
-            lowerHorisontalStack.topAnchor.constraint(equalTo: upperHorisontalStack.bottomAnchor, constant: ConstraintSpacing.standard),
-            lowerHorisontalStack.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: ConstraintSpacing.standard),
-            lowerHorisontalStack.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -ConstraintSpacing.standard)
+            lowerHorisontalStack.leadingAnchor.constraint(equalTo: verticalStack.leadingAnchor),
+            lowerHorisontalStack.trailingAnchor.constraint(equalTo: verticalStack.trailingAnchor),
+            lowerHorisontalStack.bottomAnchor.constraint(equalTo: verticalStack.bottomAnchor)
         ])
+        
+        botIssueButton.translatesAutoresizingMaskIntoConstraints = false
+        otherIssueButton.translatesAutoresizingMaskIntoConstraints = false
+        sellerIssueButton.translatesAutoresizingMaskIntoConstraints = false
+        walletIssueButton.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            botIssueButton.topAnchor.constraint(equalTo: upperHorisontalStack.topAnchor),
+            botIssueButton.bottomAnchor.constraint(equalTo: upperHorisontalStack.bottomAnchor),
+            
+            walletIssueButton.topAnchor.constraint(equalTo: upperHorisontalStack.topAnchor),
+            walletIssueButton.bottomAnchor.constraint(equalTo: upperHorisontalStack.bottomAnchor),
+            
+            sellerIssueButton.topAnchor.constraint(equalTo: lowerHorisontalStack.topAnchor),
+            sellerIssueButton.bottomAnchor.constraint(equalTo: lowerHorisontalStack.bottomAnchor),
+            
+            otherIssueButton.topAnchor.constraint(equalTo: lowerHorisontalStack.topAnchor),
+            otherIssueButton.bottomAnchor.constraint(equalTo: lowerHorisontalStack.bottomAnchor)
+        ])
+        
+//        if let botLabel = botIssueButton.titleLabel {
+//            NSLayoutConstraint.activate([
+//                botIssueButton.topAnchor.constraint(equalTo: botLabel.topAnchor),
+//                botIssueButton.bottomAnchor.constraint(equalTo: botLabel.bottomAnchor)
+//            ])
+//        }
+//        
+//        if let walletLabel = walletIssueButton.titleLabel {
+//            NSLayoutConstraint.activate([
+//                walletIssueButton.topAnchor.constraint(equalTo: walletLabel.topAnchor),
+//                walletIssueButton.bottomAnchor.constraint(equalTo: walletLabel.bottomAnchor)
+//            ])
+//        }
+//        
+//        if let sellerLabel = sellerIssueButton.titleLabel {
+//            NSLayoutConstraint.activate([
+//                sellerIssueButton.topAnchor.constraint(equalTo: sellerLabel.topAnchor),
+//                sellerIssueButton.bottomAnchor.constraint(equalTo: sellerLabel.bottomAnchor)
+//            ])
+//        }
+        
+        if let otherLabel = otherIssueButton.titleLabel {
+            NSLayoutConstraint.activate([
+                otherIssueButton.topAnchor.constraint(equalTo: otherLabel.topAnchor),
+                otherIssueButton.bottomAnchor.constraint(equalTo: otherLabel.bottomAnchor)
+            ])
+        }
     }
 }
 
