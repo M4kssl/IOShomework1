@@ -14,6 +14,9 @@ struct Feedback: View {
     @FocusState private var focusedField: FocusedField?
     @State private var wasUsernameFocused = false
     @State private var wasFeedbackFocused = false
+    @State private var hasVreificationBegun: Bool = false
+    @State private var showSuccessAlert: Bool = false
+    @State private var showFailureAlert: Bool = false
     
     let onDismiss: (() -> Void)?
     
@@ -35,6 +38,22 @@ struct Feedback: View {
             if showPrivacyPolicy {
                 privacyPolicyText
             }
+            if hasVreificationBegun {
+                let onFinish: () -> Void = {
+                    handleVerificationResult()
+                }
+                HumanVerificationView(feedbackService: feedbackService, onFinish: onFinish)
+            }
+        }
+        .alert("Sent successfully!", isPresented: $showSuccessAlert) {
+           // Button()
+        } message: {
+            Text(FeedbackService.Texts.sentSuccessfully)
+        }
+        .alert("Validation failed!", isPresented: $showFailureAlert) {
+           // Button()
+        } message: {
+            Text(FeedbackService.Texts.verificationFailure)
         }
     }
     
@@ -89,8 +108,8 @@ struct Feedback: View {
     
     var sendButton: some View {
         Button(action: {
-            feedbackService.sendFeedback()
-            onDismiss?()
+            feedbackService.beginVerification()
+            hasVreificationBegun.toggle()
         }) {
             Text("Send")
                 .foregroundColor(!feedbackService.isFeedbackValid
@@ -153,6 +172,19 @@ struct Feedback: View {
                     .foregroundStyle(.red)
                     .font(.footnote)
             }
+        }
+    }
+}
+
+extension Feedback {
+    func handleVerificationResult() {
+        hasVreificationBegun.toggle()
+        if feedbackService.isLastGestureValid {
+            showSuccessAlert.toggle()
+            feedbackService.sendFeedback()
+            feedbackService.clearUserInputs()
+        } else {
+            showFailureAlert.toggle()
         }
     }
 }
