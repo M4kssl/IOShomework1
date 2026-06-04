@@ -14,10 +14,16 @@ protocol FeedbackServiceProtocol {
     var isUsernameValid: Bool { get set }
     var isFeedbackValid: Bool { get set }
     var issues: Set<Issue> { get set }
+    var currentInstruction: String { get }
+    var isLastGestureValid: Bool { get }
     
     func sendFeedback()
     func validateUsername()
     func validateFeedback()
+    func beginVerification()
+    func validateDragGesture(_ gesture: VerificationGesture)
+    func goToNextGesture()
+    func clearUserInputs()
 }
 
 // Коммент про диалог про использование viewModel с wrapper'ом @StateObject + ObservableObject без combine
@@ -28,6 +34,12 @@ final class FeedbackService: FeedbackServiceProtocol, ObservableObject {
     @Published var isUsernameValid = true
     @Published var isFeedbackValid = true
     @Published var issues = Set<Issue>()
+    @Published private(set) var currentInstruction = ""
+    @Published private(set) var isLastGestureValid: Bool = false
+    
+    internal var currentGesture: VerificationGesture?
+    
+    private var arrayOfGestures = [VerificationGesture]()
     
     func sendFeedback() {
         AppLogger.login.info("Feedback sent")
@@ -41,12 +53,63 @@ final class FeedbackService: FeedbackServiceProtocol, ObservableObject {
     func validateFeedback() {
         isFeedbackValid = feedback.count >= 3 && feedback.count <= 150
     }
+    
+    func beginVerification() {
+        generateSetOfGestures()
+        currentGesture = arrayOfGestures.first
+        currentInstruction = currentGesture?.title ?? ""
+    }
+    
+    func validateDragGesture(_ gesture: VerificationGesture) {
+        isLastGestureValid = currentGesture == gesture
+    }
+    
+    func goToNextGesture() {
+        if arrayOfGestures.isEmpty {
+            currentGesture = nil
+            currentInstruction = ""
+            return
+        } else {
+            arrayOfGestures.removeFirst()
+        }
+        
+        if arrayOfGestures.isEmpty {
+            currentGesture = nil
+            currentInstruction = ""
+            return
+        } else {
+            currentGesture = arrayOfGestures.first
+            currentInstruction = currentGesture?.title ?? ""
+        }
+    }
+    
+    func clearUserInputs() {
+        username = ""
+        feedback = ""
+        issues = []
+        isAgreementChecked = false
+    }
 }
 
+// MARK: - Private Methods
+extension FeedbackService {
+    func generateSetOfGestures() {
+        arrayOfGestures = []
+        for _ in 0..<5 {
+            let randomGesture = VerificationGesture.allCases.randomElement() ?? .bottomToTop
+            arrayOfGestures.append(randomGesture)
+        }
+    }
+}
+
+// MARK: - Constants
 extension FeedbackService {
     enum Texts {
         static let usernameValidationError = "Username must be 3-30 characters long"
         static let feedbackValidationError = "Feedback must be 3-150 characters long"
+        
+        static let sentSuccessfully = "Feedback sent successfully! We apprriciate your feedback!"
+        static let verificationFailure = "Verification failed. Please try again."
         
         static let policyText =
                 """
@@ -182,6 +245,26 @@ enum Issue: Int, CaseIterable {
             return "Issue with balance"
         case .other:
             return "Other issue"
+        }
+    }
+}
+
+enum VerificationGesture: CaseIterable {
+    case leftToRight
+    case rightToLeft
+    case topToBottom
+    case bottomToTop
+    
+    var title: String {
+        switch self {
+        case .leftToRight:
+            return "left to right"
+        case .rightToLeft:
+            return "right to left"
+        case .topToBottom:
+            return "top to bottom"
+        case .bottomToTop:
+            return "bottom to top"
         }
     }
 }
