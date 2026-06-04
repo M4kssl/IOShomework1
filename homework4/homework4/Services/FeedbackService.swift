@@ -91,7 +91,7 @@ final class FeedbackService: FeedbackServiceProtocol, ObservableObject {
     }
 }
 
-// MARK: - Private methods
+// MARK: - Private Methods
 extension FeedbackService {
     func generateSetOfGestures() {
         arrayOfGestures = []

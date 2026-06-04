@@ -45,14 +45,12 @@ struct Feedback: View {
                 HumanVerificationView(feedbackService: feedbackService, onFinish: onFinish)
             }
         }
-        .alert("Sent successfully!", isPresented: $showSuccessAlert) {
-           // Button()
-        } message: {
+        .alert("Sent successfully!", isPresented: $showSuccessAlert) { }
+        message: {
             Text(FeedbackService.Texts.sentSuccessfully)
         }
-        .alert("Validation failed!", isPresented: $showFailureAlert) {
-           // Button()
-        } message: {
+        .alert("Validation failed!", isPresented: $showFailureAlert) { }
+        message: {
             Text(FeedbackService.Texts.verificationFailure)
         }
     }
