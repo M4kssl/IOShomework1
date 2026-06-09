@@ -37,6 +37,16 @@ final class MainTabBarCoordinator: Coordinator {
             tag: 1
         )
         
+        let optimizationNavigationController = UINavigationController()
+        let optimizationViewController = OptimizationAssembly().assembly()
+        optimizationViewController.title = "Optimization"
+        optimizationNavigationController.pushViewController(optimizationViewController, animated: false)
+        optimizationNavigationController.tabBarItem = UITabBarItem(
+            title: "Optimization",
+            image: UIImage(systemName: "hammer"),
+            tag: 3
+        )
+        
         let settingsNavigationController = UINavigationController()
         let settingsCoordinator = SettingsCoordinator(navigationController: settingsNavigationController)
         settingsCoordinator.onLogout = { [weak self] in
@@ -50,7 +60,7 @@ final class MainTabBarCoordinator: Coordinator {
             tag: 2
         )
         
-        tabBarController.viewControllers = [botNavigationController, tradingNavigationController, settingsNavigationController]
+        tabBarController.viewControllers = [botNavigationController, tradingNavigationController, settingsNavigationController, optimizationNavigationController]
         window.rootViewController = tabBarController
         window.makeKeyAndVisible()
     }
