@@ -3,106 +3,6 @@ import SwiftUI
 import UIKit
 import Combine
 
-struct OptimizationCurrencyPair: Identifiable, Equatable {
-    let id: UUID
-    let name: String
-    var value: Double
-    var previousValue: Double
-    var history: [Double]
-    
-    var changePercent: Double {
-        guard previousValue != 0 else { return 0 }
-        return (value - previousValue) / previousValue * 100
-    }
-}
-
-@MainActor
-final class CurrencyPairsGenerator: ObservableObject {
-    static let pairsCount = 500
-    
-    @Published private(set) var pairs: [OptimizationCurrencyPair] = []
-    @Published private(set) var lastUpdatedPairs: [OptimizationCurrencyPair] = []
-    @Published private(set) var updateCycle: Int = 0
-    
-    private var timer: Timer?
-    
-    init() {
-        pairs = Self.makePairs()
-        lastUpdatedPairs = Array(pairs.prefix(12))
-        startUpdating()
-    }
-    
-    deinit {
-        timer?.invalidate()
-    }
-    
-    private func startUpdating() {
-        timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.updateRandomPairs()
-            }
-        }
-    }
-    
-    private func updateRandomPairs() {
-        var updatedPairs = pairs
-        let updateCount = Int.random(in: 8...35)
-        var indexes = Set<Int>()
-
-        while indexes.count < updateCount {
-            indexes.insert(Int.random(in: updatedPairs.indices))
-        }
-
-        for index in indexes {
-            updatedPairs[index].previousValue = updatedPairs[index].value
-            updatedPairs[index].value = max(
-                0.0001,
-                updatedPairs[index].value * Double.random(in: 0.985...1.015)
-            )
-
-            updatedPairs[index].history.append(updatedPairs[index].value)
-
-            if updatedPairs[index].history.count > 240 {
-                updatedPairs[index].history.removeFirst(
-                    updatedPairs[index].history.count - 240
-                )
-            }
-        }
-
-        pairs = updatedPairs
-        lastUpdatedPairs = indexes
-            .sorted()
-            .map { updatedPairs[$0] }
-
-        updateCycle += 1
-    }
-
-    private static func makePairs() -> [OptimizationCurrencyPair] {
-        (0..<pairsCount).map { _ in
-            var value = Double.random(in: 0.5...180)
-            var history: [Double] = []
-
-            for _ in 0..<120 {
-                value = max(0.0001, value * Double.random(in: 0.995...1.005))
-                history.append(value)
-            }
-
-            return OptimizationCurrencyPair(
-                id: UUID(),
-                name: "\(randomCode())/\(randomCode())",
-                value: value,
-                previousValue: history.dropLast().last ?? value,
-                history: history
-            )
-        }
-    }
-
-    private static func randomCode() -> String {
-        let letters = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-        return String((0..<3).map { _ in letters.randomElement()! })
-    }
-}
-
 struct RecentUpdatedPairsView: View {
     let id: Int = 0
     let lastUpdatedPairs: [OptimizationCurrencyPair]
@@ -135,19 +35,39 @@ struct RecentUpdatedPairsView: View {
 struct BadCurrencyPairsView: View {
     @StateObject private var generator = CurrencyPairsGenerator()
     @State private var highlightRisk: Bool = false
-
+    @State private var arrowRotationAngle = 0.0
     var body: some View {
+        VStack {
+            switch generator.state {
+            case .empty:
+                EmptyView()
+            case .loading:
+                loading
+            case .loaded(let currenciesLists):
+                mainView(currenciesLists: currenciesLists)
+            case .error:
+                error
+            }
+        }
+        .onAppear {
+            generator.dispatch(action: .appear)
+        }
+    }
+}
+
+extension BadCurrencyPairsView {
+    func mainView(currenciesLists: CurrenciesListsData) -> some View {
         VStack(spacing: 0) {
             Toggle("Подсвечивать рискованные пары", isOn: $highlightRisk)
                 .padding()
                 .background(Color.gray.opacity(0.12))
             
-            RecentUpdatedPairsView(lastUpdatedPairs: generator.lastUpdatedPairs, updateCycle: generator.updateCycle)
+            RecentUpdatedPairsView(lastUpdatedPairs: currenciesLists.lastUpdatedPairs, updateCycle: currenciesLists.updateCycle)
                 .equatable()
             
             ScrollView {
                 LazyVStack(spacing: 10) {
-                    ForEach(generator.pairs) { pair in
+                    ForEach(currenciesLists.allPairs) { pair in
                         CurrenciesListElementView(pair: pair, highlightRisk: $highlightRisk)
                     }
                 }
@@ -155,7 +75,29 @@ struct BadCurrencyPairsView: View {
             }
         }
     }
+    
+    var loading: some View {
+        VStack {
+            Text("Загрузка...")
+            Image(systemName: "arrow.trianglehead.clockwise")
+                .rotationEffect(.degrees(arrowRotationAngle))
+                .onAppear {
+                    withAnimation(.linear(duration: 1.0).repeatForever(autoreverses: false)) {
+                        arrowRotationAngle = 360
+                    }
+                }
+        }
+    }
+    
+    var error: some View {
+        ZStack {
+            Color.red.opacity(0.12)
+                .ignoresSafeArea()
+            Text("Ошибка загрузки данных")
+        }
+    }
 }
+
 
 struct RecentCurrencyPairCard: View, Equatable {
     let pair: OptimizationCurrencyPair
